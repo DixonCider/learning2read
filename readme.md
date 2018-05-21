@@ -12,8 +12,30 @@
 > + [Add short codes prefixes for commits to style guide](https://github.com/quantopian/zipline/issues/96)
 >     + SciPy/NumPy所使用加在commit message前的短語
 
-# Machine Learning Packages/Classes
+# TODO
+1. plot.py
+2. setup.py
+3. Installation
+
+# Machine Learning Packages/Classes (WIP)
 
 Type|Package|Description
 -|-|-
 probability|sklearn.linear_model.LogisticRegression|MLE Estimator
+
+# Installation (WIP)
+## (copy from pyecharts)
+`
+git clone https://github.com/pyecharts/pyecharts.git
+cd pyecharts
+pip install -r requirements.txt
+python setup.py install
+`
+
+## (windows)
+`mklink /d homework "I:\Dropbox\_a5_Projects\homework"`
+`mklink /d src dst`
+
+## (osx / linux)
+`ln -s /Users/qtwu/Dropbox/_a5_Projects/pytalk/ ./pytalk`
+`ln -s dst src`

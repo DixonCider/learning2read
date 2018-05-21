@@ -1,3 +1,4 @@
 BX-CSV-Dump/*
 *.csv
 *.zip
+*.pyc
