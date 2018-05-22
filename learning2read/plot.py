@@ -38,3 +38,9 @@ class SimpleScatter(PlotBase): # give (data,x,y) -> scatter
         } for r in self.list_of_dict]
         self._option.get('series').append(new_series)
         return self
+    @classmethod
+    def demo(cls):
+        import math
+        return cls().setup([
+            {'x':t*.1-10,'y':math.sin(t*.1-10)} for t in range(200)
+        ],True).add(ftooltip=lambda r:{'formatter':'sin(%.4f)=%.4f'%(r['x'],r['y'])})
