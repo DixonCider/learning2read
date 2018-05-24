@@ -12,7 +12,7 @@ class SimpleScatter(PlotBase): # give (data,x,y) -> scatter
             self.list_of_dict=data
         self._option['xAxis']={'type': 'value'}
         self._option['yAxis']={'type': 'value'}
-#         self._option['legend']=[{'data':[]}]
+        self._option['legend']=[{'data':[]}]
         self._option['series']=[]
         self._option['tooltip']={'show':True}
         self._option['dataZoom']=[
@@ -23,19 +23,23 @@ class SimpleScatter(PlotBase): # give (data,x,y) -> scatter
             self._option['dataZoom'].append({'type':'slider','xAxisIndex':0,'filterMode':'empty'})
             self._option['dataZoom'].append({'type':'slider','yAxisIndex':0,'filterMode':'empty'})
         return self
-    def add(self,xname="x",yname="y",fvalue=None,fsymbol=None,fsymbolSize=None,ftooltip=None):
+    def add(self,xname="x",yname="y",series_type="scatter",legend=None,fvalue=None,fsymbol=None,fsymbolSize=None,ftooltip=None):
         fvalue = fvalue or (lambda r:[r[xname],r[yname]])
         fsymbol= fsymbol or (lambda r:"circle")
-        fsymbolSize=fsymbolSize or (lambda r:10)
+        fsymbolSize=fsymbolSize or (lambda r:5)
         ftooltip=ftooltip or (lambda r:{'formatter':'(%.4f,%.4f)'%(r[xname],r[yname])})
         new_series={}
-        new_series['type']="scatter"
+        new_series['type']=series_type
         new_series['data']=[{
             'value':fvalue(r),
             'symbol':fsymbol(r),
             'symbolSize':fsymbolSize(r),
             'tooltip':ftooltip(r),
         } for r in self.list_of_dict]
+        if legend:
+            new_series['name']=new_series
+            self._option.get('legend')[0].get('data').append(legend)
+
         self._option.get('series').append(new_series)
         return self
     @classmethod
@@ -44,3 +48,7 @@ class SimpleScatter(PlotBase): # give (data,x,y) -> scatter
         return cls().setup([
             {'x':t*.1-10,'y':math.sin(t*.1-10)} for t in range(200)
         ],True).add(ftooltip=lambda r:{'formatter':'sin(%.4f)=%.4f'%(r['x'],r['y'])})
+
+class SimpleLine(SimpleScatter):
+    def add(self,*args,**kwargs):
+        return super(SimpleLine,self).add(series_type="line",*args,**kwargs)
