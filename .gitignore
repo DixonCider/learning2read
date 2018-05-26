@@ -2,3 +2,5 @@ BX-CSV-Dump/*
 *.csv
 *.zip
 *.pyc
+.ipynb_checkpoints
+playground/*
