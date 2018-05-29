@@ -27,17 +27,19 @@ class SimpleScatter(PlotBase): # give (data,x,y) -> scatter
             self._option['dataZoom'].append({'type':'slider','xAxisIndex':0,'filterMode':'empty'})
             self._option['dataZoom'].append({'type':'slider','yAxisIndex':0,'filterMode':'empty'})
         return self
-    def add(self,xname="x",yname="y",series_type="scatter",legend=None,fvalue=None,fsymbol=None,fsymbolSize=None,ftooltip=None):
+    def add(self,xname="x",yname="y",series_type="scatter",legend=None,fvalue=None,fsymbol=None,fsymbolSize=None,ftooltip=None,fitemstyle=None):
         fvalue = fvalue or (lambda r:[r[xname],r[yname]])
         fsymbol= fsymbol or (lambda r:"circle")
         fsymbolSize=fsymbolSize or (lambda r:5)
         ftooltip=ftooltip or (lambda r:{'formatter':'(%.4f,%.4f)'%(r[xname],r[yname])})
+        fitemstyle=fitemstyle or (lambda r:{})
         new_series={}
         new_series['type']=series_type
         new_series['data']=[{
             'value':fvalue(r),
             'symbol':fsymbol(r),
             'symbolSize':fsymbolSize(r),
+            'itemStyle':fitemstyle(r),
             'tooltip':ftooltip(r),
         } for r in self.list_of_dict]
         if legend:
