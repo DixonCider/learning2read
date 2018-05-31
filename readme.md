@@ -43,10 +43,10 @@
 + `numpy` matrix,linalg
 + `scipy` stats
 + `sklearn` a.k.a. scikit-learn, 各種ML模型和測試工具
-+ `pyecharts` plot
++ `pyecharts` 百度所支持畫圖套件Echarts的python接口
 + `path.py` 檔案路徑小工具（別懷疑，它名稱就叫path.py）
-+ `lightgbm`
++ `lightgbm` Microsoft支持的Gradient Boost Descision Tree
 
 ## 觀望中
-+ `pytorch` facebook支持的深度學習庫
++ `pytorch` Facebook支持的深度學習庫
     + [PyTorch到底好用在哪里? - 知乎](https://www.zhihu.com/question/65578911)
