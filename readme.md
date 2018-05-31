@@ -2,6 +2,7 @@
 `learning2read/` 套件
 + code共享區
 + 盡量包成class、名稱取長一點沒關係
+
 `report/` 文件
 + 取名方式4001,5001,6001
     + 4001-ReportName.ipynb
@@ -9,6 +10,7 @@
     + 4001-ReportName.py
     + 4001-ReportName.c
     + 4001-ReportName.sh
+
 `playground/` (local)
 + `.gitignore`裡有一行`playground/*`，本地實驗用
 
@@ -37,14 +39,14 @@
 
 # Dependency
 
-`pandas` DataFrame
-`numpy` matrix,linalg
-`scipy` stats
-`sklearn` a.k.a. scikit-learn, 各種ML模型和測試工具
-`pyecharts` plot
-`path.py` 檔案路徑小工具（別懷疑，它名稱就叫path.py）
-`lightgbm`
++ `pandas` DataFrame
++ `numpy` matrix,linalg
++ `scipy` stats
++ `sklearn` a.k.a. scikit-learn, 各種ML模型和測試工具
++ `pyecharts` plot
++ `path.py` 檔案路徑小工具（別懷疑，它名稱就叫path.py）
++ `lightgbm`
 
 ## 觀望中
-`pytorch` facebook支持的深度學習庫
-+ [PyTorch到底好用在哪里? - 知乎](https://www.zhihu.com/question/65578911)
++ `pytorch` facebook支持的深度學習庫
+    + [PyTorch到底好用在哪里? - 知乎](https://www.zhihu.com/question/65578911)
