@@ -15,8 +15,9 @@ def LCS(s1,s2): # length of LCS(s1,s2)
     
 
 class DataLoader:
-    def __init__(self,path=r"/Users/qtwu/Downloads/data"):
+    def __init__(self,path=r"/Users/qtwu/Downloads/data",verbose=1):
         self.path=path
+        self.verbose=verbose
         self.file_list=[
             "book_ratings_test.csv",
             "book_ratings_train.csv",
@@ -30,7 +31,8 @@ class DataLoader:
             lambda a,b:a if DataLoader.better_match(keyword,a,b) else b,
             self.file_list)
         fpath=Path(self.path).joinpath(filename_matched)
-        print(fpath)
+        if self.verbose:
+            print(fpath)
         return pd.read_csv(fpath,**kwargs)
     
     @staticmethod
