@@ -3,10 +3,12 @@
 + code共享區
 + 盡量包成class、名稱取長一點沒關係
 `report/` 文件
-+ (WIP)
++ 取名方式4001,5001,6001
     + 4001-ReportName.ipynb
     + 4001-ReportName.pdf
     + 4001-ReportName.py
+    + 4001-ReportName.c
+    + 4001-ReportName.sh
 `playground/` (local)
 + `.gitignore`裡有一行`playground/*`，本地實驗用
 
