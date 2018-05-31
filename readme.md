@@ -12,30 +12,39 @@
 > + [Add short codes prefixes for commits to style guide](https://github.com/quantopian/zipline/issues/96)
 >     + SciPy/NumPy所使用加在commit message前的短語
 
-# TODO
-1. plot.py
-2. setup.py
-3. Installation
-
 # Machine Learning Packages/Classes (WIP)
 
 Type|Package|Description
 -|-|-
 probability|sklearn.linear_model.LogisticRegression|MLE Estimator
 
-# Installation (WIP)
-## (copy from pyecharts)
-`
-git clone https://github.com/pyecharts/pyecharts.git
-cd pyecharts
-pip install -r requirements.txt
-python setup.py install
-`
+# Installation
+1. git pull這個repo
+2. 在python/虛擬環境目錄下建symbolic link
+    + 有點髒我知道但它很方便 :p
+    + windows
+        + `mklink /d learning2read "I:\Dropbox\_a5_Projects\EmptyCup106-2\MLTech-Final\learning2read"`
+        + `mklink /d src dst`
+    + linux
+        + `ln -s /Users/qtwu/Dropbox/_a5_Projects/EmptyCup106-2/MLTech-Final/learning2read /Users/qtwu/anaconda/lib/python3.6/site-packages`
+        + `ln -s dst src`
+
+# Dependency
+
+`pandas` DataFrame
+`numpy` matrix,linalg
+`scipy` stats
+`sklearn` a.k.a. scikit-learn, 各種ML模型和測試工具
+`pyecharts` plot
+`path.py` 檔案路徑小工具（別懷疑，它名稱就叫path.py）
+`lightgbm`
+
+## 觀望中
+`pytorch` facebook支持的深度學習庫
++ [PyTorch到底好用在哪里? - 知乎](https://www.zhihu.com/question/65578911)
+
 
 ## (windows)
-`mklink /d homework "I:\Dropbox\_a5_Projects\homework"`
-`mklink /d src dst`
+
 
 ## (osx / linux)
-`ln -s /Users/qtwu/Dropbox/_a5_Projects/pytalk/ ./pytalk`
-`ln -s dst src`
