@@ -7,13 +7,18 @@ class PlotBase(Base): # my base :)
 class SimpleScatter(PlotBase): # give (data,x,y) -> scatter
     def setup_xAxis(self,atype="value"):
         self._option['xAxis']={'type': atype}
+        return self
     def setup_yAxis(self,atype="value"):
         self._option['yAxis']={'type': atype}
-    def setup(self,data,use_slider=False):
+        return self
+    def setup_data(self,data):
         if isinstance(data,pd.DataFrame):
             self.list_of_dict=data.to_dict("record")
         else:
             self.list_of_dict=data
+        return self
+    def setup(self,data,use_slider=False):
+        self.setup_data(data)
         self.setup_xAxis()
         self.setup_yAxis()
         self._option['legend']=[{'data':[]}]
