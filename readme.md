@@ -42,7 +42,7 @@
 + `pandas` DataFrame
 + `numpy` matrix,linalg
 + `scipy` stats
-+ `sklearn` a.k.a. scikit-learn, 各種ML模型和測試工具
++ `scikit-learn` sklearn, 各種ML模型和測試工具
 + `pyecharts` 百度所支持畫圖套件Echarts的python接口
 + `path.py` 檔案路徑小工具（別懷疑，它名稱就叫path.py）
 + `lightgbm` Microsoft支持的Gradient Boost Descision Tree
