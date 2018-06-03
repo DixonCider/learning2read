@@ -13,6 +13,30 @@ def LCS(s1,s2): # length of LCS(s1,s2)
             result+=1
     return result
     
+def better_match(key,s1,s2):
+    """Determine whether [key] is [s1] or [s2]
+    Parameters
+    ----------
+    key : str
+        user input (like "btrain")
+    s1 : str
+        target1 (like "book_ratings_train.csv")
+    s2 : str
+        target2 (like "implicit_ratings.csv")
+
+    Returns
+    -------
+    s1_better_match_than_s2 : bool
+        ("book_ratings_train.csv" with LCS=6
+        better than
+        "implicit_ratings.csv" with LCS=5)
+    """
+    l1=LCS(key,s1)
+    l2=LCS(key,s2)
+    if l1==l2:
+        return len(s1)<len(s2)
+    return l1>l2
+    
 
 class DataLoader:
     def __init__(self,path=r"/Users/qtwu/Downloads/data",verbose=1):
@@ -28,17 +52,10 @@ class DataLoader:
         ]
     def load(self,keyword,**kwargs):
         filename_matched=reduce(
-            lambda a,b:a if DataLoader.better_match(keyword,a,b) else b,
+            lambda a,b:a if better_match(keyword,a,b) else b,
             self.file_list)
         fpath=Path(self.path).joinpath(filename_matched)
         if self.verbose:
             print(fpath)
         return pd.read_csv(fpath,**kwargs)
     
-    @staticmethod
-    def better_match(key,s1,s2):
-        l1=LCS(key,s1)
-        l2=LCS(key,s2)
-        if l1==l2:
-            return len(s1)<len(s2)
-        return l1>l2
