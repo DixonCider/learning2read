@@ -5,6 +5,25 @@ import pandas as pd
 import numpy as np
 import scipy
 
+# for loop generator
+def as_lod(df):
+    assert isinstance(df,pd.core.frame.DataFrame)
+    for rpair in df.iterrows():
+        d = dict(rpair[1])
+        d['index'] = rpair[0]
+        yield d
+
+def check_array(array_like_object):
+    return np.array(array_like_object)
+try: # ugly
+    import torch
+    def check_tensor(array_like_object):
+        return torch.from_numpy(array_like_object).float() # cause GPU does float faster
+    def check_tensor_array(array_like_object):
+        return check_tensor(check_array(array_like_object))
+except:
+    pass
+
 def LCS(s1,s2): # length of LCS(s1,s2)
     diff=ndiff(s1,s2)
     result=0
