@@ -25,8 +25,12 @@ def load_pickle(fpath):
         data=pickle.load(f)
     return data
 
-# for loop generator
-def as_lod(df):
+# 
+def alod(df):
+    """
+    (DataFrame) as list of dict
+    for loop generator
+    """
     assert isinstance(df,pd.core.frame.DataFrame)
     for rpair in df.iterrows():
         d = dict(rpair[1])
