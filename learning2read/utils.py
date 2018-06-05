@@ -5,9 +5,21 @@ import pandas as pd
 import numpy as np
 import scipy
 import pickle
+
+def dict_to_code(data):
+    """
+    for caching purpose
+    diff dict -> diff code
+    same code -> very likly same dict
+
+    dict will be sorted at a shallow level...QQ
+    """
+    return abs(hash(str(sorted(data.items()))))
+
 def save_pickle(fpath,data):
     with open(fpath,'wb') as f:
         pickle.dump(data,f)
+        
 def load_pickle(fpath):
     with open(fpath,'rb') as f:
         data=pickle.load(f)
