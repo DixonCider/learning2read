@@ -4,6 +4,14 @@ from path import Path # package "path.py"
 import pandas as pd
 import numpy as np
 import scipy
+import pickle
+def save_pickle(fpath,data):
+    with open(fpath,'wb') as f:
+        pickle.dump(data,f)
+def load_pickle(fpath):
+    with open(fpath,'rb') as f:
+        data=pickle.load(f)
+    return data
 
 # for loop generator
 def as_lod(df):
