@@ -1,5 +1,6 @@
 from pyecharts.base import Base
 import pandas as pd
+import types
 class PlotBase(Base): # my base :)
     def __init__(self,w=600,h=400,*args,**kwargs):
         super(PlotBase,self).__init__(width=w,height=h,*args,**kwargs)
@@ -14,6 +15,8 @@ class SimpleScatter(PlotBase): # give (data,x,y) -> scatter
     def setup_data(self,data):
         if isinstance(data,pd.DataFrame):
             self.list_of_dict=data.to_dict("record")
+        elif isinstance(data,types.GeneratorType):
+            self.list_of_dict=data
         else:
             self.list_of_dict=data
         return self
