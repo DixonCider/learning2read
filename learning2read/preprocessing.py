@@ -24,15 +24,54 @@ def list_to_statistics(values,name,arg=None):
     raise Exception("no such statistics named '%s'"%name)
 
 class RowFilter:
+    """
+        'class'  : 'learning2read.preprocessing.RowFilter',
+        'output' : 'df_train',
+        'input_data' : 'df_total_features',
+        'lambda' : r"lambda r:r['Book-Rating']>0",
+    """
     @classmethod
     def run(cls,input_data,**kwargs):
         # WIP
         return {'output':output}
+
 class UserBookTable:
+    """
+        'class'  : 'learning2read.preprocessing.UserBookTable',
+        'output' : 'df_total_features', # (X,y={-1,0,1,2,...,10})
+        'input_data' : ['df_total', 'user_rating', 'book_rating', 'book_vector'],
+        'na_policy' : None, # should fill it before training
+    """
     @classmethod
-    def run(cls,input_data,**kwargs):
-        # WIP
+    def run(cls,input_data,na_policy=None,drop_columns=['User-ID','ISBN']):
+        assert len(input_data)>=2
+        _na_policy = na_policy or 'median'
+        output = input_data[0]
+        for i in range(1,len(input_data)):
+            df_right = input_data[i]
+            is_user = 'User-ID' in df_right.columns
+            is_book = 'ISBN' in df_right.columns
+            assert is_user ^ is_book # exactly one
+            output = output.merge(
+                df_right,
+                on='User-ID' if is_user else 'ISBN',
+                how='left')
+        output = output.drop(drop_columns, 1)
+        if output.isnull().values.any() and not na_policy:
+            print("[UserBookTable] WARNING: found na but no na_policy assigend. fill with %s"%_na_policy)
+        output = output.fillna(eval("output.%s()"%_na_policy))
         return {'output':output}
+"""
+def rating_merge(rating,user,book): # only users.csv, books disposed
+    df=rating
+    df=df.merge(user,on='User-ID',how='left')
+    df=df.merge(book,on='ISBN',how='left')
+    df=df.drop(,1)
+    df=df.fillna(df.median()) # fill with median
+    return df
+df_train=rating_merge(raw_train,df_user_rate,df_book)
+df_train.sample(10)
+"""
         
 class UserRatingSqueeze:
     @classmethod
