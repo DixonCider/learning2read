@@ -60,8 +60,9 @@ class BookVectorPow2AutoEncoder:
         code = model.predict(train_tns)
         zero_vec = model.predict(torch.zeros(len(dfco)))
         vec_lst = []
-        for do_df_id in dfdo: # domain = 'ISBN' = do_df_id
+        for do_df_id in dfdo.index: # domain = 'ISBN' = do_df_id
             doid = do_to_id[do_df_id]
+            # print(do_df_id,"mapsto",doid)
             if doid<0: # not in model
                 vec_lst.append(zero_vec)
             else:
@@ -73,3 +74,18 @@ class BookVectorPow2AutoEncoder:
             axis=1)
 
         return {'output' : output}
+
+class UserVectorPow2AutoEncoder:
+    @classmethod
+    def run(cls,**kwargs):
+        R=BookVectorPow2AutoEncoder.run(
+                domain="User-ID",
+                codomain="ISBN",
+                code_col_name_prefix='uv',
+                **kwargs)
+        return R
+        # return {}.update(BookVectorPow2AutoEncoder.run(
+        #         domain="User-ID",
+        #         codomain="ISBN",
+        #         code_col_name_prefix='uv',
+        #         **kwargs))
