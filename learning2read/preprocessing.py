@@ -37,7 +37,7 @@ class UserBookTable:
 class UserRatingSqueeze:
     @classmethod
     def run(cls,input_data,filter_num=1,statistics="mean",
-    belongs_to='User-ID',objective='Book-Rating'):
+    belongs_to='User-ID',objective='Book-Rating',na_policy="median"):
         assert filter_num>0
         if type(statistics)==str:
             statistics = [statistics]
@@ -67,8 +67,10 @@ class UserRatingSqueeze:
                     pass
                 r[name] = list_to_statistics(lst, **kwargs)
             return r
-        return {'output':pd.DataFrame([
-            gen(iid,lst) for iid,lst in dict_of_list.items()])}
+
+        output = pd.DataFrame([gen(iid,lst) for iid,lst in dict_of_list.items()])
+        output = output.fillna(eval("output.%s()"%na_policy))
+        return {'output' : output}
 
 class BookRatingSqueeze:
     @classmethod
@@ -79,6 +81,6 @@ class TotalDataFrame:
     @classmethod
     def run(cls,input_data,test_fill=-1,train_drop=None,**kwargs):
         assert type(input_data)==list
-        output = pd.concat(input_data, axis=0)
+        output = pd.concat(input_data, axis=0, )
         output = output.fillna(test_fill)
         return {'output':output}
