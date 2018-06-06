@@ -1,4 +1,4 @@
-from collections import defaultdict
+import learning2read
 class Procedure:
     def __init__(self,proc_list,verbose=0):
         self.proc_list=proc_list.copy()
@@ -48,6 +48,7 @@ class Procedure:
         self.output_to_var(proc_dict['output'], result['output'])
         del result['output']
         self.result_list[proc_id] = result
+        self.last_done_proc_id = proc_id
         
     def run(self):
         st = (self.last_done_proc_id or -1)+1
@@ -59,5 +60,4 @@ class Procedure:
             if self.verbose:
                 print("run_id(%d): %s"%(i,str(self.proc_list[i]) ))
             self.run_id(i)
-            self.last_done_proc_id=i
         return self

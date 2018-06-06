@@ -1,7 +1,8 @@
 # "runner" classes made by b04303128 :p
 
 from learning2read.unsupervised import Pow2AutoEncoder
-from learning2read.utils import alod,DataLoader
+from learning2read.utils import alod,DataLoader,save_pickle,load_pickle
+from learning2read.preprocessing import Index,IndexFold
 from path import Path
 import torch
 from collections import defaultdict
