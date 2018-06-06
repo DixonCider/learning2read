@@ -85,20 +85,25 @@ class DataLoader:
     def __init__(self,path=r"/Users/qtwu/Downloads/data",verbose=1):
         self.path=path
         self.verbose=verbose
+        def File(name,**kwargs):
+            return {
+                'name' : name,
+                'param' : kwargs
+            }
         self.file_list=[
-            "book_ratings_test.csv",
-            "book_ratings_train.csv",
-            "books.csv",
-            "implicit_ratings.csv",
-            "submission.csv",
-            "users.csv",
+            File("book_ratings_test.csv"),
+            File("book_ratings_train.csv"),
+            File("books.csv"),
+            File("implicit_ratings.csv"),
+            File("submission.csv", header=None),
+            File("users.csv"),
         ]
     def load(self,keyword,**kwargs):
-        filename_matched=reduce(
-            lambda a,b:a if better_match(keyword,a,b) else b,
+        file_matched=reduce(
+            lambda a,b:a if better_match(keyword,a['name'],b['name']) else b,
             self.file_list)
-        fpath=Path(self.path).joinpath(filename_matched)
+        fpath=Path(self.path).joinpath(file_matched['name'])
         if self.verbose:
             print(fpath)
-        return pd.read_csv(fpath,**kwargs)
+        return pd.read_csv(fpath,**file_matched['param'])
     
