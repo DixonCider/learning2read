@@ -4,6 +4,82 @@ from learning2read.utils import alod
 import torch
 from collections import defaultdict
 import pandas as pd
+import numpy as np
+import lightgbm as lgb
+
+class LightGBMRandomForest:
+    """
+        'output' : 'model_rf', # a sklearn like model with (fit,predict)
+        'input_data' : 'df_train',
+        'param' : {
+            'random_state' : 1,
+        }
+    """
+    @classmethod
+    def run(cls,input_data,param):
+        # load param
+        _param = param.copy() # copy before delete
+        seed = _param['random_state']
+        lgb_param={
+            'seed' : seed,
+            'bagging_seed' : seed,
+            'feature_fraction_seed' : seed,
+            'drop_seed' : seed,
+            'data_random_seed' : seed,
+        }
+        del _param['random_state']
+        lgb_param.update(_param)
+        lgb_param.update({
+            'objective' : 'regression_l1',
+            "boosting" : "rf",
+            'num_leaves' : 300,
+            'max_depth' : -1,
+            'learning_rate' : 0.01,
+            "min_child_samples" : 20,
+            "feature_fraction" : 0.4,
+            "bagging_freq" : 10,
+            "bagging_fraction" : 0.4 ,
+            "bin_construct_sample_cnt" : 200000,
+        })
+
+        # load data
+        is_val_mode = False
+        x_val, y_val, E_val = None, None, None
+        if type(input_data)==list:
+            # validation mode
+            assert len(input_data)==2 # must input [train, val]
+            x_val = input_data[1].iloc[:,1:]
+            y_val = np.ravel(input_data[1].iloc[:,:1])
+            train_data = input_data[0]
+            is_val_mode = True
+        else:
+            train_data = input_data
+        x_train = train_data.iloc[:,1:]
+        y_train = np.ravel(train_data.iloc[:,:1])
+        model = lgb.LGBMRegressor(**lgb_param)
+        model.fit(x_train, y_train)
+        E_in = model.score(x_train, y_train)
+        if is_val_mode:
+            E_val = model.score(x_val, y_val)
+        # E_val= None
+        return {
+            'output' : model,
+            'E_in' : E_in,
+            'E_val' : E_val,
+        }
+
+"""
+import lightgbm as lgb
+# random forest mode
+param = {}
+model=lgb.LGBMRegressor(
+    objective='regression_l1',
+    **param
+)
+model.fit(x_train, y_train)
+model.score(x_train, y_train) # best: 0.33981505052378735
+"""
+
 class BookVectorPow2AutoEncoder:
     """
         'class'  : 'learning2read.b04.BookVectorPow2AutoEncoder',
