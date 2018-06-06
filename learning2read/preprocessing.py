@@ -28,11 +28,13 @@ class RowFilter:
         'class'  : 'learning2read.preprocessing.RowFilter',
         'output' : 'df_train',
         'input_data' : 'df_total_features',
-        'lambda' : r"lambda r:r['Book-Rating']>0",
+        'func' : r"lambda df:df['Book-Rating']>0",
     """
     @classmethod
-    def run(cls,input_data,**kwargs):
-        # WIP
+    def run(cls,input_data,func,**kwargs):
+        if type(func)==str:
+            func = eval(func)
+        output = input_data.loc[func(input_data),:]
         return {'output':output}
 
 class UserBookTable:
