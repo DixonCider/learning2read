@@ -5,6 +5,23 @@ import scipy.stats
 from collections import defaultdict
 from .utils import alod
 
+import random
+def Index(n, total_n, random_state):
+    random.seed(random_state)
+    if n<1:
+        n = max(1,round(n * total_n))
+    return random.sample(range(total_n),n)
+def IndexFold(k_fold, total_n, random_state):
+    random.seed(random_state)
+    idx_list = []
+    for i in range(total_n):
+        idx_list.append(i%k_fold)
+    random.shuffle(idx_list)
+    folds = [[] for _ in range(k_fold)]
+    for i,idx in enumerate(idx_list):
+        folds[idx].append(i)
+    return folds
+
 STATS_AVAILABLE=['quantile','mean','mode','std','skew','kurtosis']
 def list_to_statistics(values,name,arg=None):
     assert len(values)>0
@@ -122,6 +139,6 @@ class TotalDataFrame:
     @classmethod
     def run(cls,input_data,test_fill=-1,train_drop=None,**kwargs):
         assert type(input_data)==list
-        output = pd.concat(input_data, axis=0, )
+        output = pd.concat(input_data, axis=0, ignore_index=True)
         output = output.fillna(test_fill)
         return {'output':output}
