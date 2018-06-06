@@ -5,6 +5,7 @@ from . import preprocessing
 from . import unsupervised
 from . import submission
 from . import b04
+from . import proc
 def reload_all(): # for module developing
     reload(utils)
     reload(plot)
@@ -12,3 +13,6 @@ def reload_all(): # for module developing
     reload(unsupervised)
     reload(submission)
     reload(b04)
+    reload(proc)
+
+    
