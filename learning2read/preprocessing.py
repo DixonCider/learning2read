@@ -24,12 +24,14 @@ def IndexFold(k_fold, total_n, seed):
         folds[idx].append(i)
     return folds
 
-STATS_AVAILABLE=['quantile','mean','mode','std','skew','kurtosis']
+STATS_AVAILABLE=['num','quantile','mean','mode','std','skew','kurtosis']
 def list_to_statistics(values,name,arg=None):
     assert len(values)>0
     if name=='quantile':
         assert 0<=arg and arg<=1
         return np.percentile(values, arg*100)
+    elif name=='num':
+        return len(values)
     elif name=='mean':
         return sum(values) / len(values)
     elif name=='mode':
