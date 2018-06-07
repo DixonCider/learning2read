@@ -6,6 +6,25 @@ import numpy as np
 import scipy
 import pickle
 
+import random
+def Index(n, total_n, seed):
+    R = random.Random() # for thread safe
+    R.seed(seed)
+    if n<1:
+        n = max(1,round(n * total_n))
+    return R.sample(range(total_n),n)
+def IndexFold(k_fold, total_n, seed):
+    R = random.Random() # for thread safe
+    R.seed(seed)
+    idx_list = []
+    for i in range(total_n):
+        idx_list.append(i%k_fold)
+    R.shuffle(idx_list)
+    folds = [[] for _ in range(k_fold)]
+    for i,idx in enumerate(idx_list):
+        folds[idx].append(i)
+    return folds
+    
 def dict_to_code(data):
     """
     for caching purpose
