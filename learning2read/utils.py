@@ -14,6 +14,9 @@ def dict_to_code(data):
 
     dict will be sorted at a shallow level...QQ
     """
+    if type(data)==list:
+        assert type(data[0])==dict
+        return abs(hash(str( [sorted(d.items()) for d in data] )))
     return abs(hash(str(sorted(data.items()))))
 
 def save_pickle(fpath,data):

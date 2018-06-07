@@ -1,6 +1,6 @@
 import learning2read
 class Procedure:
-    def __init__(self,proc_list,verbose=0):
+    def __init__(self,proc_list,verbose=False):
         self.proc_list=proc_list.copy()
         self.verbose = verbose
         self.result_list=[{} for _ in range(len(proc_list))]
