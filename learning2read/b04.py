@@ -2,7 +2,7 @@
 
 from learning2read.unsupervised import Pow2AutoEncoder
 from learning2read.utils import alod,DataLoader,save_pickle,load_pickle
-from learning2read.preprocessing import Index,IndexFold
+from learning2read.utils import Index,IndexFold,list_diff
 from path import Path
 import torch
 from collections import defaultdict
@@ -12,7 +12,7 @@ import lightgbm as lgb
 
 PATH_MAC={
     'data' : r"/Users/qtwu/Downloads/data",
-    'cache' : r"/tmp/",
+    'cache' : r"/Users/qtwu/pickle/",
 }
 PATH_LIN2={
     'data' : r"/tmp2/b04303128/data",

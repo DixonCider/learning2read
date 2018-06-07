@@ -24,7 +24,9 @@ def IndexFold(k_fold, total_n, seed):
     for i,idx in enumerate(idx_list):
         folds[idx].append(i)
     return folds
-    
+def list_diff(alst,blst):
+    return list(set(alst) - set(blst))
+
 def dict_to_code(data):
     """
     for caching purpose
