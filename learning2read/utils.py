@@ -1,5 +1,4 @@
 from difflib import ndiff
-from functools import reduce
 from path import Path # package "path.py"
 import pandas as pd
 import numpy as np
@@ -40,14 +39,6 @@ def dict_to_code(data):
         return abs(hash(str( [sorted(d.items()) for d in data] )))
     return abs(hash(str(sorted(data.items()))))
 
-def save_pickle(fpath,data):
-    with open(fpath,'wb') as f:
-        pickle.dump(data,f)
-        
-def load_pickle(fpath):
-    with open(fpath,'rb') as f:
-        data=pickle.load(f)
-    return data
 
 # 
 def alod(df):
@@ -105,29 +96,4 @@ def better_match(key,s1,s2):
     return l1>l2
     
 
-class DataLoader:
-    def __init__(self,path=r"/Users/qtwu/Downloads/data",verbose=1):
-        self.path=path
-        self.verbose=verbose
-        def File(name,**kwargs):
-            return {
-                'name' : name,
-                'param' : kwargs
-            }
-        self.file_list=[
-            File("book_ratings_test.csv"),
-            File("book_ratings_train.csv"),
-            File("books.csv"),
-            File("implicit_ratings.csv"),
-            File("submission.csv", header=None),
-            File("users.csv"),
-        ]
-    def load(self,keyword,**kwargs):
-        file_matched=reduce(
-            lambda a,b:a if better_match(keyword,a['name'],b['name']) else b,
-            self.file_list)
-        fpath=Path(self.path).joinpath(file_matched['name'])
-        if self.verbose:
-            print(fpath)
-        return pd.read_csv(fpath,**file_matched['param'])
     

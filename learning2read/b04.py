@@ -1,14 +1,14 @@
 # "runner" classes made by b04303128 :p
 
 from learning2read.unsupervised import Pow2AutoEncoder
-from learning2read.utils import alod,DataLoader,save_pickle,load_pickle
-from learning2read.utils import Index,IndexFold,list_diff
-from path import Path
+from learning2read.utils import alod,Index,IndexFold,list_diff
+from learning2read.io import PathMgr,DataMgr,save_pickle,load_pickle
 import torch
 from collections import defaultdict
 import pandas as pd
 import numpy as np
 import lightgbm as lgb
+
 
 PATH_MAC={
     'data' : r"/Users/qtwu/Downloads/data",
@@ -18,16 +18,6 @@ PATH_LIN2={
     'data' : r"/tmp2/b04303128/data",
     'cache' : r"/tmp2/b04303128/data/cache",
 }
-class PathMgr:
-    def __init__(self,prefix):
-        self.prefix = Path(prefix)
-    def __call__(self,fname):
-        return self.prefix.joinpath(fname)
-class DataMgr:
-    def __init__(self,prefix):
-        self.loader = DataLoader(prefix)
-    def __call__(self,keyword):
-        return self.loader.load(keyword)
 File = PathMgr(PATH_MAC['cache'])
 Data = DataMgr(PATH_MAC['data'])
 
