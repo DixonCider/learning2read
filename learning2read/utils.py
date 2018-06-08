@@ -4,14 +4,34 @@ import pandas as pd
 import numpy as np
 import scipy
 import pickle
-
 import random
+
+import math
+norm = scipy.stats.norm
+def draw(lower, upper, lower_bound, upper_bound, confidence=0.68, log=False, python_random=None):
+    if not python_random:
+        python_random = random.Random()
+    if log:
+        assert lower>0 and upper>0
+        lower = math.log(lower)
+        upper = math.log(upper)
+    
+    mu = (lower+upper)*0.5
+    q = 1-(1-confidence)/2
+    sigma = (upper-mu)/norm.ppf(q)
+    x = python_random.gauss(mu,sigma)
+    
+    if log:
+        x = math.exp(x)
+    return max(min(x,upper_bound),lower_bound)
+
 def Index(n, total_n, seed):
     R = random.Random() # for thread safe
     R.seed(seed)
     if n<1:
         n = max(1,round(n * total_n))
     return R.sample(range(total_n),n)
+
 def IndexFold(k_fold, total_n, seed):
     R = random.Random() # for thread safe
     R.seed(seed)
@@ -23,6 +43,7 @@ def IndexFold(k_fold, total_n, seed):
     for i,idx in enumerate(idx_list):
         folds[idx].append(i)
     return folds
+    
 def list_diff(alst,blst):
     return list(set(alst) - set(blst))
 
