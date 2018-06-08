@@ -125,6 +125,6 @@ class TotalDataFrame:
     @classmethod
     def run(cls,input_data,test_fill=-1,train_drop=None,**kwargs):
         assert type(input_data)==list
-        output = pd.concat(input_data, axis=0, ignore_index=True)
+        output = pd.concat(input_data, axis=0, ignore_index=True, sort=False)
         output = output.fillna(test_fill)
         return {'output':output}
