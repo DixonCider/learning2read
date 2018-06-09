@@ -28,7 +28,18 @@ class LightGBMRegressor:
     validation mode only now
     """
     @classmethod
-    def run(cls, input_data, param, tune=True): # input_data = [df_train_v, df_valid]
+    def run(cls, input_data, param): # input_data = [df_train_v, df_valid]
+        if type(input_data)==list:
+            assert len(input_data)==2
+            is_val_mode = True
+            x_train = input_data[0].iloc[:, 1:]
+            y_train = np.ravel(input_data[0].iloc[:, :1])
+            x_valid = input_data[1].iloc[:, 1:]
+            y_valid = np.ravel(input_data[1].iloc[:, :1])
+        else:
+            is_val_mode = False
+            x_train = input_data.iloc[:, 1:]
+            y_train = np.ravel(input_data.iloc[:, :1])
         seed = 1
         if param.get('seed'):
             seed = param['seed']
@@ -50,23 +61,21 @@ class LightGBMRegressor:
             'tree_learner' : 'data',
         })
         lgb_param.update(param)
-        x_train = input_data[0].iloc[:, 1:]
-        y_train = np.ravel(input_data[0].iloc[:, :1])
-        x_valid = input_data[1].iloc[:, 1:]
-        y_valid = np.ravel(input_data[1].iloc[:, :1])
         model = lgb.LGBMRegressor(**lgb_param)
         model.fit(x_train, y_train)
+
+        E_in, E_val = None, None
 
         try:
             E_in = mean_absolute_error(y_train, model.predict(x_train))
         except:
-            E_in = None
-        try:
-            E_val = mean_absolute_error(y_valid, model.predict(x_valid))
-        except:
-            E_val = None
-
-        if tune:
+            pass
+            
+        if is_val_mode:
+            try:
+                E_val = mean_absolute_error(y_valid, model.predict(x_valid))
+            except:
+                pass
             model = None
         return {
             'output' : model,
@@ -79,12 +88,12 @@ now = datetime.datetime.now
 import random
 R = random.Random()
 class LightGBMRegressorTuner:
-    def __init__(self, df_train, K=5, fold_seed=999):
+    def __init__(self, df_train, K=5, fold_seed=999, verbose=False):
         self.result_list = []
         self.K = K
         self.N = df_train.shape[0]
         self.fold = IndexFold(K, self.N, fold_seed)
-        self.verbose = 1
+        self.verbose = verbose
         self.df_train = df_train
     @property
     def df(self):
