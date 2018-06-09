@@ -1,7 +1,7 @@
 # "runner" classes made by b04303128 :p
 
 from learning2read.unsupervised import Pow2AutoEncoder
-from learning2read.utils import alod,Index,IndexFold,list_diff
+from learning2read.utils import alod,draw,Index,IndexFold,list_diff,dict_to_code
 from learning2read.io import PathMgr,DataMgr,save_pickle,load_pickle
 import torch
 from collections import defaultdict
@@ -21,6 +21,121 @@ PATH_LIN2={
 File = PathMgr(PATH_MAC['cache'])
 Data = DataMgr(PATH_MAC['data'])
 
+from sklearn.metrics import mean_absolute_error
+
+class LightGBMRegressor:
+    """
+    validation mode only now
+    """
+    @classmethod
+    def run(cls, input_data, param, tune=True): # input_data = [df_train_v, df_valid]
+        seed = 1
+        if param.get('seed'):
+            seed = param['seed']
+        lgb_param={
+            'seed' : seed,
+            'bagging_seed' : seed,
+            'feature_fraction_seed' : seed,
+            'drop_seed' : seed,
+            'data_random_seed' : seed,
+        }
+        lgb_param.update({
+            'objective' : 'regression_l1',
+            'boosting_type' : 'gbdt',
+            'num_leaves' : 31,
+            'learning_rate' : 0.1,
+            'n_estimators' : 100,
+            'min_child_samples' : 20,
+            'n_jobs' : -1,
+            'tree_learner' : 'data',
+        })
+        lgb_param.update(param)
+        x_train = input_data[0].iloc[:, 1:]
+        y_train = np.ravel(input_data[0].iloc[:, :1])
+        x_valid = input_data[1].iloc[:, 1:]
+        y_valid = np.ravel(input_data[1].iloc[:, :1])
+        model = lgb.LGBMRegressor(**lgb_param)
+        model.fit(x_train, y_train)
+
+        try:
+            E_in = mean_absolute_error(y_train, model.predict(x_train))
+        except:
+            E_in = None
+        try:
+            E_val = mean_absolute_error(y_valid, model.predict(x_valid))
+        except:
+            E_val = None
+
+        if tune:
+            model = None
+        return {
+            'output' : model,
+            'E_in' : E_in,
+            'E_val' : E_val,
+        }
+
+import datetime
+now = datetime.datetime.now
+import random
+R = random.Random()
+class LightGBMRegressorTuner:
+    def __init__(self, df_train, K=5, fold_seed=999):
+        self.result_list = []
+        self.K = K
+        self.N = df_train.shape[0]
+        self.fold = IndexFold(K, self.N, fold_seed)
+        self.verbose = 1
+        self.df_train = df_train
+    @property
+    def df(self):
+        return pd.DataFrame(self.result_list)
+    def run_param(self, param):
+        N = self.df_train.shape[0]
+        K = self.K
+        for i in range(K):
+            if self.verbose:
+                print(i,K)
+            idx_valid = self.fold[i]
+            idx_train = list_diff(range(N), idx_valid)
+            df_valid = self.df_train.iloc[idx_valid, :]
+            df_train_v = self.df_train.iloc[idx_train, :]
+            st = now()
+            result = LightGBMRegressor.run([df_train_v, df_valid], param)
+            t_cost = (now() - st).total_seconds()
+            result.update({
+                'pcode' : dict_to_code(param),
+                'fold_i' : i,
+                'fold_k' : K,
+                'time' : t_cost,
+            })
+            result.update(param)
+            self.result_list.append(result)
+            if self.verbose:
+                print(result)
+        if self.verbose:
+            print(self.df)
+        return self
+    @classmethod
+    def tune1(cls,df_train,T=100,name="tune1",path_mgr=None):
+        obj = cls(df_train)
+        for ti in range(T):
+            try:
+                param = {
+                    'num_leaves' : int(draw(15,127,3,1023)),
+                    'learning_rate' : draw(1e-3,1e+2,1e-10,1e+5,log=True),
+                    'n_estimators' : int(draw(50,500,1,1000)),
+                    'min_child_samples' : int(draw(15,63,7,1023)),
+                }
+                print(param)
+                obj.run_param(param)
+            except:
+                print("ti=%d failed."%ti)
+            if ti%5==0 or ti==T-1:
+                if path_mgr:
+                    fname = "%s_%d"%(name,T)
+                    print(fname)
+                    save_pickle(path_mgr(fname), obj)
+        return obj
 
 class LightGBMRandomForest:
     """
