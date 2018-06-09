@@ -3,11 +3,12 @@ from path import Path # package "path.py"
 import pandas as pd
 import numpy as np
 import scipy
+from scipy.stats import norm
 import pickle
 import random
 
 import math
-norm = scipy.stats.norm
+# norm = scipy.stats.norm
 def draw(lower, upper, lower_bound, upper_bound, confidence=0.68, log=False, python_random=None):
     if not python_random:
         python_random = random.Random()
@@ -43,7 +44,7 @@ def IndexFold(k_fold, total_n, seed):
     for i,idx in enumerate(idx_list):
         folds[idx].append(i)
     return folds
-    
+
 def list_diff(alst,blst):
     return list(set(alst) - set(blst))
 
