@@ -66,18 +66,37 @@ class UserBookTable:
             print("[UserBookTable] WARNING: found na but no na_policy assigend. fill with %s"%_na_policy)
         output = output.fillna(eval("output.%s()"%_na_policy))
         return {'output':output}
-"""
-def rating_merge(rating,user,book): # only users.csv, books disposed
-    df=rating
-    df=df.merge(user,on='User-ID',how='left')
-    df=df.merge(book,on='ISBN',how='left')
-    df=df.drop(,1)
-    df=df.fillna(df.median()) # fill with median
-    return df
-df_train=rating_merge(raw_train,df_user_rate,df_book)
-df_train.sample(10)
-"""
+
+class UserPadding:
+    """
+    'class' : 'learning2read.preprocessing.UserPadding',
+    'output' : 'user_rating',
+    'input' : ['df_total', 'user_rating'],
+    'isna_name' : 'User-ID_no_book',
+    'na_policy' : 'median',
+    """
+    @classmethod
+    def run(cls,input_data,isna_name,na_policy,belongs_to='User-ID'):
+        assert type(input_data)==list
+        assert len(input_data)==2
+        df_total = input_data[0]
+        df_padding = input_data[1]
+        df_padding[isna_name] = 0
+        padding_entry = defaultdict(lambda:False)
+        for x in df_padding[belongs_to]:
+            padding_entry[x] = True
+        for x,_ in df_total.groupby(belongs_to).indices.items():
+            if not padding_entry[x]:
+                padding_entry[x] = True
+                df_padding = df_padding.append({belongs_to:x, isna_name:1},ignore_index=True)
+        output = df_padding.fillna(eval("df_padding.%s()"%na_policy))
+        return {'output' : output}
         
+class BookPadding:
+    @classmethod
+    def run(cls,**kwargs):
+        return UserPadding.run(belongs_to='ISBN',**kwargs)
+
 class UserRatingSqueeze:
     @classmethod
     def run(cls,input_data,filter_num=1,statistics="mean",
@@ -87,29 +106,42 @@ class UserRatingSqueeze:
             statistics = [statistics]
 
         lts_arg_list = []
+        lts_arg_list_short = []
         for name in statistics:
             if name=='quantile11': # ugly
                 for q in np.linspace(0,1,11):
                     lts_arg_list.append({'name':'quantile', 'arg':round(q,2)})
             else:
                 lts_arg_list.append({'name':name})
+            if name=='num':
+                lts_arg_list_short.append({'name':name})
+        lts_arg_list.append({'name':'isna'})
+        lts_arg_list_short.append({'name':'isna'})
 
         dict_of_list = defaultdict(lambda:[])
         for r in alod(input_data):
-            dict_of_list[r[belongs_to]].append(r[objective])
+            if r[objective]>0: # only training data counts
+                dict_of_list[r[belongs_to]].append(r[objective])
 
         def gen(iid,lst):
             r={belongs_to:iid}
+            target_list = lts_arg_list
+            is_short = False
             if len(lst)<filter_num:
-                return r # skip too short list
-            for kwargs in lts_arg_list:
+                target_list = lts_arg_list_short
+                is_short = True
+                # return r # skip too short list
+            for kwargs in target_list:
                 name = "%s_%s"%(belongs_to,kwargs['name'])
                 try:
                     if kwargs['arg']:
                         name += "_"+str(kwargs['arg'])
                 except:
                     pass
-                r[name] = list_to_statistics(lst, **kwargs)
+                if kwargs['name']=='isna':
+                    r[name] = 1 if is_short else 0
+                else:
+                    r[name] = list_to_statistics(lst, **kwargs)
             return r
 
         output = pd.DataFrame([gen(iid,lst) for iid,lst in dict_of_list.items()])
