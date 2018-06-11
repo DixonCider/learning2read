@@ -3,7 +3,51 @@ import pandas as pd
 import numpy as np
 import scipy.stats
 from collections import defaultdict
-from .utils import alod
+from .utils import alod, LCS
+
+class CleanRawUser:
+    """
+        'class' : 'learning2read.preprocessing.CleanRawUser',
+        'output' : 'user_info',
+        'input_data' : ['df_total', 'raw_user'],
+        'na_policy' : 'median',
+    """
+    @classmethod
+    def run(cls,input_data,na_policy):
+        assert type(input_data)==list
+        assert len(input_data)==2
+        df_total = input_data[0]
+        raw_user = input_data[1]
+        user_info = pd.DataFrame([ {'User-ID':x} for x,_ in df_total.groupby('User-ID').indices.items()])
+        user_info = user_info.merge(raw_user,on='User-ID',how='left')
+        user_info['Loc_is_usa'] = user_info['Location'].apply(lambda r:int(LCS('usa',str(r))==3))
+        user_info['Age_isna'] = user_info['Age'].apply(lambda r:int(pd.isna(r)))
+        user_info = user_info.drop('Location',1)
+        user_info = user_info.fillna(eval("user_info.%s()"%na_policy))
+        return {'output' : user_info}
+
+class CleanRawBook:
+    """
+        'class' : 'learning2read.preprocessing.CleanRawBook',
+        'output' : 'book_info',
+        'input_data' : ['df_total', 'raw_book'],
+        'na_policy' : 'median',
+    """
+    @classmethod
+    def run(cls,input_data,na_policy):
+        assert type(input_data)==list
+        assert len(input_data)==2
+        df_total = input_data[0]
+        raw_book = input_data[1]
+        book_info = pd.DataFrame([ {'ISBN':x} for x,_ in df_total.groupby('ISBN').indices.items()])
+        book_info = book_info.merge(raw_book,on='ISBN',how='left')
+        book_info['ISBN_is_usa'] = book_info['ISBN'].apply(lambda r:int((str(r)[0])=='0') )
+        book_info['Year-Of-Publication'] = book_info['Year-Of-Publication'].apply(lambda r: np.nan if r<1000 or r>2018 else r)
+        book_info['Year_isna'] = book_info['Year-Of-Publication'].apply(lambda r:int(pd.isna(r)) )
+        book_info = book_info[['ISBN','ISBN_is_usa','Year_isna','Year-Of-Publication']]
+        book_info = book_info.fillna(eval("book_info.%s()"%na_policy))
+        return {'output' : book_info}
+
 
 
 STATS_AVAILABLE=['num','quantile','mean','mode','std','skew','kurtosis']
@@ -81,15 +125,11 @@ class UserPadding:
         assert len(input_data)==2
         df_total = input_data[0]
         df_padding = input_data[1]
+        output = pd.DataFrame([ {belongs_to:x} for x,_ in df_total.groupby(belongs_to).indices.items()])
         df_padding[isna_name] = 0
-        padding_entry = defaultdict(lambda:False)
-        for x in df_padding[belongs_to]:
-            padding_entry[x] = True
-        for x,_ in df_total.groupby(belongs_to).indices.items():
-            if not padding_entry[x]:
-                padding_entry[x] = True
-                df_padding = df_padding.append({belongs_to:x, isna_name:1},ignore_index=True)
-        output = df_padding.fillna(eval("df_padding.%s()"%na_policy))
+        output = output.merge(df_padding,on=belongs_to,how='left')
+        output[isna_name] = output[isna_name].apply(lambda r:int(pd.isna(r)))
+        output = output.fillna(eval("output.%s()"%na_policy))
         return {'output' : output}
         
 class BookPadding:
@@ -109,14 +149,14 @@ class UserRatingSqueeze:
         lts_arg_list_short = []
         for name in statistics:
             if name=='quantile11': # ugly
-                for q in np.linspace(0,1,11):
-                    lts_arg_list.append({'name':'quantile', 'arg':round(q,2)})
+                for q in range(11):
+                    lts_arg_list.append({'name':'quantile', 'arg':round(0.1*q,1) })
             else:
                 lts_arg_list.append({'name':name})
             if name=='num':
                 lts_arg_list_short.append({'name':name})
-        lts_arg_list.append({'name':'isna'})
-        lts_arg_list_short.append({'name':'isna'})
+        lts_arg_list.append({'name':'is_short'})
+        lts_arg_list_short.append({'name':'is_short'})
 
         dict_of_list = defaultdict(lambda:[])
         for r in alod(input_data):
@@ -138,7 +178,7 @@ class UserRatingSqueeze:
                         name += "_"+str(kwargs['arg'])
                 except:
                     pass
-                if kwargs['name']=='isna':
+                if kwargs['name']=='is_short':
                     r[name] = 1 if is_short else 0
                 else:
                     r[name] = list_to_statistics(lst, **kwargs)
