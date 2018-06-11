@@ -7,6 +7,14 @@ class Procedure:
         self.summay={}
         self.var={}
         self.last_done_proc_id=None
+    def __str__(self):
+        return "\n".join([
+            "last_done_proc_id = %s"%(str(self.last_done_proc_id)),
+            "   len(proc_list) = %d"%(len(self.proc_list)),
+            "var : %s"%(str(self.var.keys())),
+        ])
+    def __repr__(self):
+        return self.__str__()
     def append(self,proc):
         _proc = proc.copy()
         self.proc_list.append(_proc)
