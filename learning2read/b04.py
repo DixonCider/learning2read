@@ -86,7 +86,7 @@ class FileGen: # workstation Pool().map_aync(f,range(5))
     def tune(self, pid, T=1, tbound=60, pgen=(lambda:{
                     'num_leaves' : int(draw(15,127,3,1023)),
                     'learning_rate' : draw(1e-2,1e-1,1e-10,1,log=True),
-                    'n_estimators' : int(draw(100,500,4,1000)),
+                    'n_estimators' : int(draw(100,200,4,400)),
                     'min_child_samples' : int(draw(15,63,7,1023)),
                 }) ):
         save = self.save
@@ -124,6 +124,7 @@ class FileGen: # workstation Pool().map_aync(f,range(5))
                         'K_fold' : K_fold,
                         'time' : tcost,
                     })
+                    result.update(param)
                     rlist.append(result)
                     print('i_fold = %d\nresult = %s'%(i_fold,str(result)))
                     if tcost > tbound:
