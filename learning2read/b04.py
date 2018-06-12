@@ -11,6 +11,10 @@ import pandas as pd
 import numpy as np
 import lightgbm as lgb
 from sklearn.metrics import mean_absolute_error
+import datetime
+now = datetime.datetime.now
+import random
+R = random.Random()
 
 PATH_MAC={
     'data' : r"/Users/qtwu/Downloads/data",
@@ -19,7 +23,7 @@ PATH_MAC={
 PATH_LIN2={
     'data' : r"/tmp2/b04303128/data",
     'cache' : r"/tmp2/b04303128/data/cache",
-    'doc' : r"~/mlfinal",
+    'doc' : r"/home/student/04/b04303128/mlfinal",
 }
 File = PathMgr(PATH_MAC['cache'])
 Data = DataMgr(PATH_MAC['data'])
@@ -77,12 +81,64 @@ class FileGen: # workstation Pool().map_aync(f,range(5))
         i_fold = pid
         seed_fold = self.seed_fold
         P = ProcValidation.run(raw_dataset,proc,i_fold,K_fold,seed_fold)['output']
-        self.save(pid, P)
-        return True
+        self.save(pid, P.var)
+        return P
+    def tune(self, pid, T=1, pgen=(lambda:{
+                    'num_leaves' : int(draw(15,127,3,1023)),
+                    'learning_rate' : draw(1e-2,1e-1,1e-10,1,log=True),
+                    'n_estimators' : int(draw(100,500,4,1000)),
+                    'min_child_samples' : int(draw(15,63,7,1023)),
+                }) ):
+        save = self.save
+        load = self.load
+        check = self.check
+        K_fold = self.K_fold
+        assert type(self.save)==type(lambda:None)
+        assert type(self.check)==type(lambda:None)
+        assert type(self.load)==type(lambda:None)
+
+        # prepare df_train, df_valid
+        df_train = []
+        df_valid = []
+        for i_fold in range(K_fold):
+            assert check(i_fold)
+            fold = load(i_fold)
+            df_train.append(fold['df_train'])
+            df_valid.append(fold['df_valid'])
+        
+        # tune
+        rlist = []
+        for ti in range(T):
+            try:
+                param = pgen()
+                print(param)
+                for i_fold in range(K_fold):
+                    st = now()
+                    result = LightGBMRegressor.run([df_train[i_fold], df_valid[i_fold]], param)
+                    result.update({
+                        'ti' : ti,
+                        'pcode' : dict_to_code(param),
+                        'i_fold' : i_fold,
+                        'K_fold' : K_fold,
+                        'time' : (now()-st).total_seconds(),
+                    })
+                    print('i_fold = %d\nresult = %s'%(i_fold,str(result)))
+                    rlist.append(result)
+                if ti%5==0 or ti==T-1:
+                    try:
+                        save(pid, rlist)
+                    except Exception as e:
+                        print("[WARNING] save failed !!!!")
+                        print(e)
+            except Exception as e:
+                print("[WARNING] ti=%d failed."%ti)
+                print(e)
+
 
 class LightGBMRegressor:
     """
-    validation mode only now
+    input_data = [train, valid] -> validation mode
+    input_data = train -> training mode
     """
     @classmethod
     def run(cls, input_data, param): # input_data = [df_train_v, df_valid]
@@ -140,10 +196,6 @@ class LightGBMRegressor:
             'E_val' : E_val,
         }
 
-import datetime
-now = datetime.datetime.now
-import random
-R = random.Random()
 class LightGBMRegressorTuner:
     def __init__(self, df_train, K=5, fold_seed=999, verbose=False):
         self.result_list = []
