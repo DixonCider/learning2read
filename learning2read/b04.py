@@ -3,12 +3,14 @@
 from learning2read.unsupervised import Pow2AutoEncoder
 from learning2read.utils import alod,draw,Index,IndexFold,list_diff,dict_to_code
 from learning2read.io import PathMgr,DataMgr,save_pickle,load_pickle
+from learning2read.proc import Procedure
+from learning2read.preprocessing import RowFilter
 import torch
 from collections import defaultdict
 import pandas as pd
 import numpy as np
 import lightgbm as lgb
-
+from sklearn.metrics import mean_absolute_error
 
 PATH_MAC={
     'data' : r"/Users/qtwu/Downloads/data",
@@ -17,11 +19,66 @@ PATH_MAC={
 PATH_LIN2={
     'data' : r"/tmp2/b04303128/data",
     'cache' : r"/tmp2/b04303128/data/cache",
+    'doc' : r"~/mlfinal",
 }
 File = PathMgr(PATH_MAC['cache'])
 Data = DataMgr(PATH_MAC['data'])
+File2 = PathMgr(PATH_LIN2['cache'])
+Data2 = DataMgr(PATH_LIN2['data'])
+Doc2 = PathMgr(PATH_LIN2['doc'])
+Doc = Doc2
 
-from sklearn.metrics import mean_absolute_error
+
+class ProcValidation:
+    """
+    'class' : 'learning2read.b04.ProcValidation',
+    'output' : 'P',
+    'input_data' : 'raw_dataset',
+    'proc' : proc40072, # run_id(0) -> hold y_valid -> run all
+    'K_fold' : 5,
+    'i_fold' : 0,
+    'seed_fold' : 1,
+    """
+    @classmethod
+    def run(cls,input_data,proc,i_fold,K_fold,seed_fold,verbose=True):
+        P = Procedure(proc, verbose)
+        P.load_data(input_data)
+        P.run_id(0)
+        assert type(P.var['df_total'])
+        def validation_set(P, i, K, seed):
+            df = P.var['df_total']
+            df_train = df.loc[df['Book-Rating']>0, :]
+            N = df_train.shape[0]
+            idx_valid = IndexFold(K, N, seed)[i]
+            idx_valid = df_train.iloc[idx_valid, :].index
+            y_valid = df.loc[idx_valid, 'Book-Rating']
+            df_sub = df.iloc[:, :]
+            df_sub.loc[idx_valid, 'Book-Rating'] = -2
+            P.var['df_total'] = df_sub.iloc[:, :]
+            return (P, y_valid)
+        P, y_valid = validation_set(P, i_fold, K_fold, seed_fold)
+        P.run()
+        assert type(P.var['df_total_features'])
+        df_train = RowFilter.run(P.var['df_total_features'],r"lambda df:df['Book-Rating']>0",)['output']
+        df_valid = RowFilter.run(P.var['df_total_features'],r"lambda df:df['Book-Rating']==-2",)['output']
+        df_valid.loc[y_valid.index, 'Book-Rating'] = y_valid
+        P.var['df_train'] = df_train
+        P.var['df_valid'] = df_valid
+        return {'output' : P}
+
+class FileGen: # workstation Pool().map_aync(f,range(5))
+    def __init__(self,**kwargs):
+        self.__dict__.update(kwargs)
+    def cv_preapre(self, pid):
+        assert type(self.save)==type(lambda:None)
+        raw_dataset = self.raw_dataset
+        proc = self.proc
+        K_fold = self.K_fold
+        i_fold = pid
+        seed_fold = self.seed_fold
+        P = ProcValidation.run(raw_dataset,proc,i_fold,K_fold,seed_fold)['output']
+        self.save(pid, P)
+        return True
 
 class LightGBMRegressor:
     """
@@ -225,7 +282,7 @@ class BookVectorPow2AutoEncoder:
         'output' : 'book_vector',
         'input_data' : 'df_total',
         'domain_filter_num' : 2, # book with >=2 users
-        'codomain_filter_num' : 1000, # user with >=1000 books
+        'codomain_filter_num' : 400, # user with >=400 books
         'param' : {
             'code_length' : 16, 
             'activation' : 'SELU', 
