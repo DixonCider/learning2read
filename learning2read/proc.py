@@ -6,7 +6,7 @@ class Procedure:
         self.result_list=[{} for _ in range(len(proc_list))]
         self.summay={}
         self.var={}
-        self.last_done_proc_id=None
+        self.last_done_proc_id=-1
     def __str__(self):
         return "\n".join([
             "last_done_proc_id = %s"%(str(self.last_done_proc_id)),
@@ -59,7 +59,7 @@ class Procedure:
         self.last_done_proc_id = proc_id
         
     def run(self):
-        st = (self.last_done_proc_id or -1)+1
+        st = self.last_done_proc_id+1
         nproc = len(self.proc_list)
         if st==nproc:
             print("[Procedure] nothing to run.")
