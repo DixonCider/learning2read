@@ -23,6 +23,12 @@ class DataLoader: # htlin's data :)
             File("users_latlon.csv"),
             File("submission.csv", header=None),
             File("users.csv"),
+            File("clean/data_books.csv"),
+            File("clean/data_implicit.csv"),
+            File("clean/data_train.csv"),
+            File("clean/data_test.csv"),
+            File("clean/data_users.csv"),
+            File("clean/data_users_latlon.csv"),
         ]
     def load(self,keyword,**kwargs):
         file_matched=reduce(

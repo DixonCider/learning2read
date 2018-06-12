@@ -2,6 +2,7 @@
 import pandas as pd
 import numpy as np
 import scipy.stats
+import re, string
 from collections import defaultdict
 from .utils import alod, LCS
 
@@ -20,35 +21,53 @@ class CleanRawUser:
         raw_user = input_data[1]
         user_info = pd.DataFrame([ {'User-ID':x} for x,_ in df_total.groupby('User-ID').indices.items()])
         user_info = user_info.merge(raw_user,on='User-ID',how='left')
-        user_info['Loc_is_usa'] = user_info['Location'].apply(lambda r:int(LCS('usa',str(r))==3))
+        #user_info['Loc_is_usa'] = user_info['Location'].apply(lambda r:int(LCS('usa',str(r))==3))
         user_info['Age_isna'] = user_info['Age'].apply(lambda r:int(pd.isna(r)))
-        user_info = user_info.drop('Location',1)
+        #user_info = user_info.drop('Location',1)
         user_info = user_info.fillna(eval("user_info.%s()"%na_policy))
         return {'output' : user_info}
+
+def get_isbn_country_code(isbn, table):
+    if len(isbn) == 10:
+        if isbn[0] == 'X' or isbn[0] == 'x': isbn = isbn[1:] + isbn[:1]
+        for i in [5,4,3,2,1]:
+            if isbn[:i] in table: return isbn[:i]
+    elif len(isbn) == 13:
+        if isbn[:3] == '979':
+            if '979-' + isbn[3:5] in table: return '979-' + isbn[3:5]
+        elif isbn[:3] == '978':
+            for i in [5,4,3,2,1]:
+                if isbn[3:3+i] in table: return isbn[3:3+i]
+    return ''
 
 class CleanRawBook:
     """
         'class' : 'learning2read.preprocessing.CleanRawBook',
         'output' : 'book_info',
-        'input_data' : ['df_total', 'raw_book'],
+        'input_data' : ['df_total', 'raw_book', 'isbn_table'],
         'na_policy' : 'median',
     """
+
     @classmethod
     def run(cls,input_data,na_policy):
         assert type(input_data)==list
-        assert len(input_data)==2
+        assert len(input_data)==3
         df_total = input_data[0]
         raw_book = input_data[1]
+        isbn_dict = input_data[2].set_index('identifier').T.to_dict('list')
+        isbn_dict[''] = ['']*3
         book_info = pd.DataFrame([ {'ISBN':x} for x,_ in df_total.groupby('ISBN').indices.items()])
         book_info = book_info.merge(raw_book,on='ISBN',how='left')
-        book_info['ISBN_is_usa'] = book_info['ISBN'].apply(lambda r:int((str(r)[0])=='0') )
+        #book_info['ISBN_is_usa'] = book_info['ISBN'].apply(lambda r:int((str(r)[0])=='0') )
+        book_info['ISBN_country_code'] = book_info['ISBN'].apply(lambda r:get_isbn_country_code(r,isbn_dict))
+        book_info['ISBN_country'] = book_info['ISBN_country_code'].apply(lambda r:isbn_dict[r][0])
+        book_info['ISBN_lat'] = book_info['ISBN_country_code'].apply(lambda r:isbn_dict[r][1])
+        book_info['ISBN_lon'] = book_info['ISBN_country_code'].apply(lambda r:isbn_dict[r][2])
         book_info['Year-Of-Publication'] = book_info['Year-Of-Publication'].apply(lambda r: np.nan if r<1000 or r>2018 else r)
         book_info['Year_isna'] = book_info['Year-Of-Publication'].apply(lambda r:int(pd.isna(r)) )
-        book_info = book_info[['ISBN','ISBN_is_usa','Year_isna','Year-Of-Publication']]
+        book_info = book_info[['ISBN','ISBN_country_code', 'ISBN_country', 'ISBN_lat', 'ISBN_lon','Year_isna','Year-Of-Publication']]
         book_info = book_info.fillna(eval("book_info.%s()"%na_policy))
         return {'output' : book_info}
-
-
 
 STATS_AVAILABLE=['num','quantile','mean','mode','std','skew','kurtosis']
 def list_to_statistics(values,name,arg=None):

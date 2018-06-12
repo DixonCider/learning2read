@@ -46,18 +46,18 @@ class Procedure:
         del run_dict['class']
         del run_dict['output']
         run_dict['input_data'] = self.input_from_var(run_dict['input_data'])
-        
+
         result=eval('%s.run(**run_dict)'%proc_dict['class'])
-        
+
         if type(proc_dict['output'])==list:
             assert type(result['output'])==type(proc_dict['output'])
             assert len(result['output'])==len(proc_dict['output'])
-        
+
         self.output_to_var(proc_dict['output'], result['output'])
         del result['output']
         self.result_list[proc_id] = result
         self.last_done_proc_id = proc_id
-        
+
     def run(self):
         st = self.last_done_proc_id+1
         nproc = len(self.proc_list)
