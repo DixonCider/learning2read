@@ -83,7 +83,7 @@ class FileGen: # workstation Pool().map_aync(f,range(5))
         P = ProcValidation.run(raw_dataset,proc,i_fold,K_fold,seed_fold)['output']
         self.save(pid, P.var)
         return P
-    def tune(self, pid, T=1, pgen=(lambda:{
+    def tune(self, pid, T=1, tbound=60, pgen=(lambda:{
                     'num_leaves' : int(draw(15,127,3,1023)),
                     'learning_rate' : draw(1e-2,1e-1,1e-10,1,log=True),
                     'n_estimators' : int(draw(100,500,4,1000)),
@@ -101,6 +101,7 @@ class FileGen: # workstation Pool().map_aync(f,range(5))
         df_train = []
         df_valid = []
         for i_fold in range(K_fold):
+            print("loading %d/%d fold"%(i_fold,K_fold))
             assert check(i_fold)
             fold = load(i_fold)
             df_train.append(fold['df_train'])
@@ -115,21 +116,26 @@ class FileGen: # workstation Pool().map_aync(f,range(5))
                 for i_fold in range(K_fold):
                     st = now()
                     result = LightGBMRegressor.run([df_train[i_fold], df_valid[i_fold]], param)
+                    tcost = (now()-st).total_seconds()
                     result.update({
                         'ti' : ti,
                         'pcode' : dict_to_code(param),
                         'i_fold' : i_fold,
                         'K_fold' : K_fold,
-                        'time' : (now()-st).total_seconds(),
+                        'time' : tcost,
                     })
-                    print('i_fold = %d\nresult = %s'%(i_fold,str(result)))
                     rlist.append(result)
-                if ti%5==0 or ti==T-1:
-                    try:
-                        save(pid, rlist)
-                    except Exception as e:
-                        print("[WARNING] save failed !!!!")
-                        print(e)
+                    print('i_fold = %d\nresult = %s'%(i_fold,str(result)))
+                    if tcost > tbound:
+                        print("cut param run time too long")
+                        break
+
+                # save rlist every round
+                try:
+                    save(pid, rlist)
+                except Exception as e:
+                    print("[WARNING] save failed !!!!")
+                    print(e)
             except Exception as e:
                 print("[WARNING] ti=%d failed."%ti)
                 print(e)
