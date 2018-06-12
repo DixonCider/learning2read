@@ -19,6 +19,8 @@ class DataLoader: # htlin's data :)
             File("book_ratings_train.csv"),
             File("books.csv"),
             File("implicit_ratings.csv"),
+            File("isbn_table.csv"),
+            File("users_latlon.csv"),
             File("submission.csv", header=None),
             File("users.csv"),
         ]
