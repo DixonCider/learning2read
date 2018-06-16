@@ -1,10 +1,11 @@
 # "runner" classes made by b04303128 :p
 
 from learning2read.unsupervised import Pow2AutoEncoder
-from learning2read.utils import alod,draw,Index,IndexFold,list_diff,dict_to_code
+from learning2read.utils import alod,draw,Index,IndexFold,list_diff,dict_to_code,RandomBox
 from learning2read.io import PathMgr,DataMgr,save_pickle,load_pickle
 from learning2read.proc import Procedure
 from learning2read.preprocessing import RowFilter
+from learning2read.dnn import SeluDNN
 import torch
 from collections import defaultdict
 import pandas as pd
@@ -32,6 +33,128 @@ Data2 = DataMgr(PATH_LIN2['data'])
 Doc2 = PathMgr(PATH_LIN2['doc'])
 Doc = Doc2
 
+from multiprocessing import Pool
+from bayes_opt import BayesianOptimization
+import sys
+class SeluDNN_Tune(SeluDNN):
+    def fit(self, time_limit):
+        self.init()
+        st = now()
+        for iepoch in range(self.epochs):
+            self.epoch(iepoch)
+            self.epoch_end(iepoch)
+            if (now()-st).total_seconds() > time_limit:
+                self.epochs = iepoch+1
+                break
+        return self
+    def setup(self, fold_dict):
+        self.x = fold_dict['x']
+        self.nin = self.x.size(1)
+        self.y = fold_dict['y']
+        self.y = self.y.view(self.x.size(0), -1)
+        self.nout = self.y.size(1)
+        self.is_val_mode = True
+        self.xv = fold_dict['xv']
+        self.yv = fold_dict['yv']
+        self.yv = self.yv.view(self.xv.size(0), -1)
+class SeluDNN_Tuner:
+    def __init__(self, pid, K_fold, time_limit, epochs_fixed, fload, fsave, fmodel):
+        self.pid = pid
+        self.K_fold = K_fold
+        self.time_limit = time_limit
+        self.epochs_fixed = epochs_fixed
+        self.fold = [fload(i) for i in range(K_fold)]
+        self.fsave = fsave
+        self.fmodel = fmodel
+        self.rlist = []
+    def tune(self, param):
+        param.update({'epochs':self.epochs_fixed})
+        K = self.K_fold
+        result = {}
+        result.update(param)
+        def f(i_fold):
+            model = self.fmodel(param)
+            model.setup(self.fold[i_fold])
+            model.fit(self.time_limit)
+            return model
+            
+        # train
+        st = now()
+        models = [f(i) for i in range(K)]
+        tcost = (now()-st).total_seconds()
+        
+        # conclude K models information
+        real_epochs = [m.epochs for m in models]
+        evals = [sum([m.eval[i] for m in models])/K for i in range(min(real_epochs))]
+        best_eval = min(evals)
+        best_epochs = 0
+        for i in range(min(real_epochs)):
+            if evals[i]==best_eval:
+                best_epochs = i
+                break
+        
+        bein  = [m.ein[best_epochs] for m in models]
+        beval = [m.eval[best_epochs] for m in models]
+        result.update({
+            'time' : tcost,
+            'pcode' : dict_to_code(param),
+            'best_epochs' : best_epochs,
+            'E_in' : np.mean(bein),
+            'E_in_std' : np.std(bein),
+            'E_val' : np.mean(beval),
+            'E_val_std' : np.std(beval),
+        })
+        for i in range(K):
+            result['epo%d'%i] = real_epochs[i]
+        return result
+
+    @property
+    def df(self):
+        return pd.DataFrame(self.rlist)
+
+    def save(self):
+        return self.fsave(self.pid, self.rlist)
+
+    def rs(self, total_time=30): # randomized search
+        R = RandomBox(self.pid)
+        st = now()
+        while (now()-st).total_seconds()<total_time:
+            result = self.tune({
+                'units' : R.draw_int(3,9,1,15),
+                'layers' : R.draw_int(3,9,1,15),
+                'learning_rate' : R.draw_log(0.01,0.1,1e-5,0.5),
+            })
+            print("remain = %10.2f"%(float(total_time - (now()-st).total_seconds())), file=sys.stderr, end='\r')
+            sys.stderr.flush()
+            print(result)
+            self.rlist.append(result)
+            self.save()
+    def bo(self, total_time=30, kappa=1, init_points=3): # Bayesian Optimization
+        st = now()
+        cache = defaultdict(lambda:None)
+        def target(**param):
+            param['units'] = int(round(param['units']))
+            param['layers'] = int(round(param['layers']))
+            pcode = dict_to_code(param)
+            if cache[pcode]:
+                print("cache!")
+                return -cache[pcode]
+            result = self.tune(param)
+            
+            print("remain = %10.2f"%(float(total_time - (now()-st).total_seconds())), file=sys.stderr, end='\r')
+            sys.stderr.flush()
+            self.rlist.append(result)
+            self.save()
+            cache[pcode] = result['E_val']
+            return -result['E_val']
+        obj = BayesianOptimization(target, {
+            'units' : (1,30),
+            'layers' : (1,30),
+            'learning_rate' : (0.005,0.5),
+        })
+        obj.maximize(init_points=init_points, n_iter=0, acq='ucb', kappa=kappa)
+        while (now()-st).total_seconds()<total_time:
+            obj.maximize(init_points=0, n_iter=1, acq='ucb', kappa=kappa)
 
 class ProcValidation:
     """
