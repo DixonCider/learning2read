@@ -6,11 +6,11 @@ class PlotBase(Base): # my base :)
         super(PlotBase,self).__init__(width=w,height=h,*args,**kwargs)
 
 class SimpleScatter(PlotBase): # give (data,x,y) -> scatter
-    def setup_xAxis(self,atype="value"):
-        self._option['xAxis']={'type': atype}
+    def setup_xAxis(self,atype="value",name=None):
+        self._option['xAxis']={'type': atype, 'name': name}
         return self
-    def setup_yAxis(self,atype="value"):
-        self._option['yAxis']={'type': atype}
+    def setup_yAxis(self,atype="value",name=None):
+        self._option['yAxis']={'type': atype, 'name': name}
         return self
     def setup_data(self,data):
         if isinstance(data,pd.DataFrame):
