@@ -9,6 +9,38 @@ import random
 
 import math
 # norm = scipy.stats.norm
+class RandomBox(random.Random):
+    def __init__(self, seed=None):
+        super(RandomBox,self).__init__(seed)
+    def draw(self, lower, upper, lower_bound, upper_bound, confidence=0.68, log=False):
+        if log:
+            assert lower>0 and upper>0
+            lower = math.log(lower)
+            upper = math.log(upper)
+        mu = (lower+upper)*0.5
+        q = 1-(1-confidence)/2
+        sigma = (upper-mu)/norm.ppf(q)
+        x = self.gauss(mu,sigma)
+        if log:
+            x = math.exp(x)
+        return max(min(x,upper_bound),lower_bound)
+    def draw_log(self, lower, upper, lower_bound, upper_bound, confidence=0.68):
+        return self.draw(lower, upper, lower_bound, upper_bound, confidence, log=True)
+    def draw_int(self, lower, upper, lower_bound, upper_bound, confidence=0.68):
+        r = self.draw(lower, upper, lower_bound, upper_bound, confidence, log=False)
+        return max(lower_bound, min(upper_bound, int(round(r))))
+    @classmethod
+    def demo(cls, N=100, seed=1):
+        R = cls(seed)
+        lst = []
+        for _ in range(N):
+            lst.append(R.draw_int(60, 80, 0, 100, 0.68))
+        print(lst)
+        lst = []
+        for _ in range(N):
+            lst.append(R.draw_int(20, 90, 0, 100, 0.33))
+        print(lst)
+
 def draw(lower, upper, lower_bound, upper_bound, confidence=0.68, log=False, python_random=None):
     if not python_random:
         python_random = random.Random()
