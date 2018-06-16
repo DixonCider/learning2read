@@ -6,6 +6,7 @@ from . import unsupervised
 from . import submission
 from . import proc
 from . import io
+from . import dnn
 def reload_all(): # for module developing
     from . import b04
     reload(utils)
@@ -16,4 +17,5 @@ def reload_all(): # for module developing
     reload(b04)
     reload(proc)
     reload(io)
+    reload(dnn)
 
