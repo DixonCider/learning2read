@@ -61,17 +61,21 @@ class SeluDNN:
         self._train_dataset = None
         return self
 
+    def init(self):
+        # optional
+        self.clear_torch()
 
-    def fit(self,x_trian,y_train,x_valid=None,y_valid=None):
-        self.setup_train(x_trian, y_train)
-        self.setup_valid(x_valid, y_valid)
-        
         # set initial weight by init_seed
         self.module
 
         # training seed, controls mini-batch / dropout
-        torch.manual_seed(self.seed) 
+        torch.manual_seed(self.seed)
+        
 
+    def fit(self,x_trian,y_train,x_valid=None,y_valid=None):
+        self.setup_train(x_trian, y_train)
+        self.setup_valid(x_valid, y_valid)
+        self.init()
         for iepoch in range(self.epochs):
             self.epoch(iepoch)
             self.epoch_end(iepoch)
@@ -96,7 +100,9 @@ class SeluDNN:
             sys.stderr.flush()
 
     def predict(self,x):
-        pass
+        x = np.array(x)
+        x = torch.FloatTensor(x)
+        return self._module(x)
         
     def need_early_stop(self):
         return False
