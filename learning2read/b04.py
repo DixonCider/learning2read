@@ -6,6 +6,9 @@ from learning2read.io import PathMgr,DataMgr,save_pickle,load_pickle
 from learning2read.proc import Procedure
 from learning2read.preprocessing import RowFilter
 from learning2read.dnn import SeluDNN
+from multiprocessing import Pool
+from bayes_opt import BayesianOptimization
+import sys
 import torch
 from collections import defaultdict
 import pandas as pd
@@ -33,9 +36,6 @@ Data2 = DataMgr(PATH_LIN2['data'])
 Doc2 = PathMgr(PATH_LIN2['doc'])
 Doc = Doc2
 
-from multiprocessing import Pool
-from bayes_opt import BayesianOptimization
-import sys
 class SeluDNN_Tune(SeluDNN):
     def fit(self, time_limit):
         self.init()
@@ -57,6 +57,20 @@ class SeluDNN_Tune(SeluDNN):
         self.xv = fold_dict['xv']
         self.yv = fold_dict['yv']
         self.yv = self.yv.view(self.xv.size(0), -1)
+    def epoch(self, iepoch):
+        for i,(x,y) in enumerate(self.dataloader):
+            pred = self.module(x)
+            loss = self.loss_func(pred, y)
+            
+            print("iepoch[%2d] mini-batch %5d : %15.4f"%(iepoch,i,float(loss)), file=sys.stderr, end='\r')
+            sys.stderr.flush()
+            
+            self.optimizer.zero_grad()
+            loss.backward()
+            self.optimizer.step()
+            
+            print("iepoch[%2d] optimizer done."%(iepoch), file=sys.stderr, end='\r')
+            sys.stderr.flush()
 class SeluDNN_Tuner:
     def __init__(self, pid, K_fold, time_limit, epochs_fixed, fload, fsave, fmodel):
         self.pid = pid
@@ -115,17 +129,17 @@ class SeluDNN_Tuner:
     def save(self):
         return self.fsave(self.pid, self.rlist)
 
-    def rs(self, total_time=30): # randomized search
-        R = RandomBox(self.pid)
+    def rs(self, total_time): # randomized search
+        R = RandomBox() # no seed is good seed
         st = now()
         while (now()-st).total_seconds()<total_time:
-            result = self.tune({
+            param = {
                 'units' : R.draw_int(3,9,1,15),
                 'layers' : R.draw_int(3,9,1,15),
                 'learning_rate' : R.draw_log(0.01,0.1,1e-5,0.5),
-            })
-            print("remain = %10.2f"%(float(total_time - (now()-st).total_seconds())), file=sys.stderr, end='\r')
-            sys.stderr.flush()
+            }
+            print(param)
+            result = self.tune(param)
             print(result)
             self.rlist.append(result)
             self.save()
