@@ -37,17 +37,26 @@ Doc2 = PathMgr(PATH_LIN2['doc'])
 Doc = Doc2
 
 class SeluDNN_Tune(SeluDNN):
+    """
+    diff from SeluDNN:
+    1. (fit, setup) setup data outside
+    2. (fit) timewise early stopping
+
+    inherit "epoch_end" if custom msg wanted
+    """
     def fit(self, time_limit):
         self.init()
-        st = now()
         for iepoch in range(self.epochs):
             self.epoch(iepoch)
             self.epoch_end(iepoch)
-            if (now()-st).total_seconds() > time_limit:
+            if self.time_elapsed > time_limit:
                 self.epochs = iepoch+1
                 break
         return self
     def setup(self, fold_dict):
+        """
+        fold_dict[obj] should be "cuda" outside if using GPU !!!!
+        """
         self.x = fold_dict['x']
         self.nin = self.x.size(1)
         self.y = fold_dict['y']
@@ -57,20 +66,7 @@ class SeluDNN_Tune(SeluDNN):
         self.xv = fold_dict['xv']
         self.yv = fold_dict['yv']
         self.yv = self.yv.view(self.xv.size(0), -1)
-    def epoch(self, iepoch):
-        for i,(x,y) in enumerate(self.dataloader):
-            pred = self.module(x)
-            loss = self.loss_func(pred, y)
-            
-            print("iepoch[%2d] mini-batch %5d : %15.4f"%(iepoch,i,float(loss)), file=sys.stderr, end='\r')
-            sys.stderr.flush()
-            
-            self.optimizer.zero_grad()
-            loss.backward()
-            self.optimizer.step()
-            
-            print("iepoch[%2d] optimizer done."%(iepoch), file=sys.stderr, end='\r')
-            sys.stderr.flush()
+        
 class SeluDNN_Tuner:
     def __init__(self, pid, K_fold, time_limit, epochs_fixed, fload, fsave, fmodel):
         self.pid = pid

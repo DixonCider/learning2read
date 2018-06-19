@@ -51,6 +51,9 @@ class SeluDNN:
         self.yv = None
         self.ein = []
         self.eval = []
+        self.start = None
+        self.is_val_mode = False
+        self.normalized = False
         # self.result = {'record':[]}
         self.init_torch()
     def init_torch(self):
@@ -68,16 +71,18 @@ class SeluDNN:
 
     def init(self):
         # optional
-        self.init_torch()
+        # self.init_torch()
 
         # set initial weight by init_seed
         self.module
 
         # training seed, controls mini-batch / dropout
         torch.manual_seed(self.seed)
+
+        self.start = now()
         
 
-    def fit(self,x_trian,y_train,x_valid=None,y_valid=None):
+    def fit(self, x_trian=None, y_train=None, x_valid=None, y_valid=None):
         self.setup_train(x_trian, y_train)
         self.setup_valid(x_valid, y_valid)
         self.init()
@@ -101,19 +106,29 @@ class SeluDNN:
         if self.is_val_mode:
             self.eval.append(float(self.loss_func(self.module(self.xv), self.yv)))
         if self.verbose:
-            print("iepoch = %5d  Ein = %12.5f  Eval = %12.5f"%(iepoch, self.ein[-1], self.eval[-1]), file=sys.stderr, end="\r")
+            if self.is_val_mode:
+                print("iepoch = %5d [%8.2f] Ein = %12.5f  Eval = %12.5f"%(iepoch, self.time_elapsed, self.ein[-1], self.eval[-1]), file=sys.stderr, end="\r")
+            else:
+                print("iepoch = %5d [%8.2f] Ein = %12.5f"%(iepoch, self.time_elapsed, self.ein[-1]), file=sys.stderr, end="\r")
             sys.stderr.flush()
 
     def predict(self,x):
         x = np.array(x)
         x = self.as_tensor(x)
-        return self._module(x)
+        y = self.module(x)
+        # if self.normalized:
+            # y = self.ymean + self.ystd * y
+        return y
         
     def need_early_stop(self):
         return False
         
-    def setup_train(self,x_trian,y_train):
-        self.x = self.as_tensor(np.array(x_trian))
+    def setup_train(self,x_train,y_train):
+        if type(x_train)==type(None) or type(y_train)==type(None):
+            assert type(self.x)!=type(None)
+            assert type(self.y)!=type(None)
+            return self # do nothing
+        self.x = self.as_tensor(np.array(x_train))
         self.nin = self.x.size(1)
         self.y = self.as_tensor(np.array(y_train))
         self.y = self.y.view(self.x.size(0), -1)
@@ -121,20 +136,36 @@ class SeluDNN:
         return self
 
     def setup_valid(self,x_valid,y_valid):
-        self.is_val_mode = type(x_valid)!=type(None) and type(y_valid)!=type(None)
-        if not self.is_val_mode:
+        if type(x_valid)==type(None) or type(y_valid)==type(None):
             return self
+        self.is_val_mode = True
         self.xv = self.as_tensor(np.array(x_valid))
         self.yv = self.as_tensor(np.array(y_valid))
         self.yv = self.yv.view(self.xv.size(0), -1)
         return self
     
     # model related utils
-    def normalize(self):
-        pass
+    def normalize(self, zero_safe=False):
+        # x, (x-x.mean(dim=0)), x.std(dim=0)
+        self.xmean = self.x.mean(dim=0)
+        self.xstd = self.x.std(dim=0) + int(zero_safe)
+        # self.ymean = self.y.mean(dim=0)
+        # self.ystd = self.y.std(dim=0) + int(zero_safe)
+        self.x = (self.x-self.xmean) / self.xstd
+        # self.y = (self.y-self.ymean) / self.ystd
+        if self.is_val_mode: # validation set normalize by training set
+            self.xv = (self.xv-self.xmean) / self.xstd
+            # self.yv = (self.yv-self.ymean) / self.ystd
+        self.normalized = True
+
     def as_tensor(self, data):
         return torch.FloatTensor(data).to(self.device)
-    
+    @property
+    def time_elapsed(self):
+        if not self.start:
+            self.start = now()
+        return (now()-self.start).total_seconds()
+
     # pytorch wrappers
     def __call__(self,x):
         return self._module(x)
