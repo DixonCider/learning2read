@@ -204,3 +204,33 @@ class SeluDNN:
         if not self._loss_func:
             self._loss_func = torch.nn.L1Loss()
         return self._loss_func
+    
+    @classmethod
+    def demo(cls, N=8000, epochs=10):
+        class Model(cls):
+            pass
+        
+        # training/validation data
+        N = N
+        N2= N//4
+        def gen(dof=1):
+            x1 = np.random.standard_t(dof)
+            x2 = np.random.standard_t(dof)
+            return {
+                'x1': x1,
+                'x2': x2,
+                'y': x1+x2
+            }
+        data = [gen(2) for _ in range(N)]
+        x = tensor([[d['x1'], d['x2']] for d in data])
+        y = tensor([d['y'] for d in data])
+        datav = [gen(1) for _ in range(N2)]
+        xv = tensor([[d['x1'], d['x2']] for d in datav])
+        yv = tensor([d['y'] for d in datav])
+
+        model = Model(32, 2, 0.1, epochs, batch_size=128, verbose=True)
+        model.setup_train(x, y)
+        model.setup_valid(xv, yv)
+        model.normalize(zero_safe=True)
+        model.fit()
+        return model.predict(tensor([[t,t] for t in range(10)]))
