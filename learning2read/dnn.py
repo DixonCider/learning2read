@@ -1,7 +1,7 @@
 # Deep Neural Network
 import numpy as np
 import torch
-import torch.utils.data as Data
+import torch.utils.data as TUData
 from torch import nn
 import sys
 import datetime
@@ -52,8 +52,13 @@ class SeluDNN:
         self.ein = []
         self.eval = []
         # self.result = {'record':[]}
-        self.clear_torch()
-    def clear_torch(self):
+        self.init_torch()
+    def init_torch(self):
+        self.gpu_count = torch.cuda.device_count()
+        self.device = torch.device("cpu") if self.gpu_count==0 else torch.device("cuda:0")
+        if self.verbose:
+            print("[SeluDNN] gpu_count = %d"%self.gpu_count)
+            print("[SeluDNN] device = %s"%self.device)
         self._module = None
         self._loss_func = None
         self._optimizer = None
@@ -63,7 +68,7 @@ class SeluDNN:
 
     def init(self):
         # optional
-        self.clear_torch()
+        self.init_torch()
 
         # set initial weight by init_seed
         self.module
@@ -101,16 +106,16 @@ class SeluDNN:
 
     def predict(self,x):
         x = np.array(x)
-        x = torch.FloatTensor(x)
+        x = self.as_tensor(x)
         return self._module(x)
         
     def need_early_stop(self):
         return False
         
     def setup_train(self,x_trian,y_train):
-        self.x = torch.FloatTensor(np.array(x_trian))
+        self.x = self.as_tensor(np.array(x_trian))
         self.nin = self.x.size(1)
-        self.y = torch.FloatTensor(np.array(y_train))
+        self.y = self.as_tensor(np.array(y_train))
         self.y = self.y.view(self.x.size(0), -1)
         self.nout = self.y.size(1)
         return self
@@ -119,11 +124,18 @@ class SeluDNN:
         self.is_val_mode = type(x_valid)!=type(None) and type(y_valid)!=type(None)
         if not self.is_val_mode:
             return self
-        self.xv = torch.FloatTensor(np.array(x_valid))
-        self.yv = torch.FloatTensor(np.array(y_valid))
+        self.xv = self.as_tensor(np.array(x_valid))
+        self.yv = self.as_tensor(np.array(y_valid))
         self.yv = self.yv.view(self.xv.size(0), -1)
         return self
-
+    
+    # model related utils
+    def normalize(self):
+        pass
+    def as_tensor(self, data):
+        return torch.FloatTensor(data).to(self.device)
+    
+    # pytorch wrappers
     def __call__(self,x):
         return self._module(x)
     
@@ -132,13 +144,13 @@ class SeluDNN:
         if not self._module:
             self._module = SeluDNNModule(
                 self.nin, self.units, self.layers, self.nout,
-                init_seed=self.init_seed)
+                init_seed=self.init_seed).to(self.device)
         return self._module
 
     @property
     def dataloader(self):
         if not self._dataloader:
-            self._dataloader = Data.DataLoader(
+            self._dataloader = TUData.DataLoader(
                 dataset=self.train_dataset,
                 batch_size=self.batch_size,
                 shuffle=True)
@@ -147,7 +159,7 @@ class SeluDNN:
     @property
     def train_dataset(self):
         if not self._train_dataset:
-            self._train_dataset = Data.TensorDataset(self.x, self.y)
+            self._train_dataset = TUData.TensorDataset(self.x, self.y)
         return self._train_dataset
 
     @property
@@ -161,78 +173,3 @@ class SeluDNN:
         if not self._loss_func:
             self._loss_func = torch.nn.L1Loss()
         return self._loss_func
-
-
-# import torch
-# from torch.autograd import Variable
-# import torch.nn.functional as F
-# # from sklearn.utils import check_array
-
-# def check_array(array_like_object):
-#     return np.array(array_like_object)
-# def check_tensor(array_like_object):
-#     return torch.from_numpy(array_like_object).float() # cause GPU does float faster
-# def check_tensor_array(array_like_object):
-#     return check_tensor(check_array(array_like_object))
-# class DEV_MODULE(torch.nn.Module):
-#     def __init__(self, n_feature, n_output, build_param):
-#         super(DEV_MODULE, self).__init__()
-#         self.units = build_param['units']
-#         self.layers = build_param['layers']
-#         self.activation = eval("F.%s"%build_param['activation'])
-        
-#         n_hidden_out = self.units
-#         for i in range(self.layers):
-#             n_hidden_in = self.units if i>0 else n_feature
-# #             self['hidden%03d'%(i+1)] = torch.nn.Linear(n_hidden_in, n_hidden_out)
-#             self.add_module('hidden%03d'%(i+1), torch.nn.Linear(n_hidden_in, n_hidden_out))
-#         self.predict = torch.nn.Linear(n_hidden_out, n_output)
-
-#     def forward(self, x):
-#         for i in range(self.layers):
-#             # x(l=3,i) = relu(s(l=3,i)) , with s(l=3,i)=[w(l=3)][x(l=2)]
-#             x = self.activation(self.__getattr__('hidden%03d'%(i+1))(x))
-#         x = self.predict(x) # linear output
-#         return x
-
-# class DEV:
-#     def __init__(self,layers=4,units=3,activation='relu',learning_rate=0.1):
-#         self.module = None # build when "fit" is called
-#         self.layers = layers
-#         self.units = units
-#         self.activation = activation
-#         self.learning_rate=learning_rate
-#     def fit(self,x_train,y_train,iters=3):
-#         x_train = check_array(x_train)
-#         y_train = check_array(y_train)
-#         self.x_tensor = Variable(check_tensor(x_train))
-#         n_sample = self.x_tensor.size(0)
-#         self.x_tensor = self.x_tensor.view(n_sample, -1)
-#         n_feature = self.x_tensor.size(1)
-#         self.y_tensor = Variable(check_tensor(y_train).view(n_sample,-1))
-#         n_output = self.y_tensor.size(1)
-#         self.module=DEV_MODULE(n_feature=n_feature,
-#                                n_output=n_output,
-#                                build_param=self.__dict__)
-#         self.optimizer = torch.optim.Adam(self.module.parameters(),
-#                                     lr=self.learning_rate)
-#         self.loss_func = torch.nn.L1Loss()  # this is for regression mean squared loss
-        
-#         for itr in range(iters):
-#             self.prediction = self.module(self.x_tensor)     # input x and predict based on x
-
-#             self.loss = self.loss_func(self.prediction, self.y_tensor)     # must be (1. nn output, 2. target)
-
-#             self.optimizer.zero_grad()   # clear gradients for next train
-#             self.loss.backward()         # backpropagation, compute gradients
-#             self.optimizer.step()        # apply gradients
-#             print(itr,self.loss)
-            
-#         return self
-#     def predict(self,x_test):
-#         x_test_tensor = check_tensor_array(x_test)
-#         prediction = self.module(x_test_tensor)
-#         return prediction.data.numpy()
-        
-# model = DEV(28,6,'selu',learning_rate=0.01)
-# model.fit(x_train,y_train,50) # best ein=1.4511
