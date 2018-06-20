@@ -167,6 +167,18 @@ class SeluDNN:
         if not self.start:
             self.start = now()
         return (now()-self.start).total_seconds()
+    @property
+    def last_ein(self):
+        try:
+            return self.ein[-1]
+        except IndexError:
+            return None
+    @property
+    def last_eval(self):
+        try:
+            return self.eval[-1]
+        except IndexError:
+            return None
 
     # pytorch wrappers
     def __call__(self,x):
