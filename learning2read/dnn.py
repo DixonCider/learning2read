@@ -112,9 +112,11 @@ class SeluDNN:
                 print("iepoch = %5d [%8.2f] Ein = %12.5f"%(iepoch, self.time_elapsed, self.ein[-1]), file=sys.stderr, end="\r")
             sys.stderr.flush()
 
-    def predict(self,x):
+    def predict(self, x, use_raw=False):
         x = np.array(x)
         x = self.as_tensor(x)
+        if not use_raw and self.normalized:
+            x = (x - self.xmean) / self.xstd
         y = self.module(x)
         # if self.normalized:
             # y = self.ymean + self.ystd * y
@@ -207,6 +209,7 @@ class SeluDNN:
     
     @classmethod
     def demo(cls, N=8000, epochs=10):
+        tensor = torch.FloatTensor
         class Model(cls):
             pass
         
@@ -233,4 +236,7 @@ class SeluDNN:
         model.setup_valid(xv, yv)
         model.normalize(zero_safe=True)
         model.fit()
-        return model.predict(tensor([[t,t] for t in range(10)]))
+        return {
+            'model': model,
+            'prediction': model.predict(tensor([[t,t] for t in range(10)]))
+        }
