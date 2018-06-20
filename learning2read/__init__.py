@@ -19,3 +19,16 @@ def reload_all(): # for module developing
     reload(io)
     reload(dnn)
 
+def reload_all_b05():
+    """
+    reloading modules when developing.
+    """
+    from . import b05
+    reload(utils)
+    reload(plot)
+    reload(preprocessing)
+    reload(unsupervised)
+    reload(submission)
+    reload(b05)
+    reload(proc)
+    reload(io)
