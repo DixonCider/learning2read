@@ -11,7 +11,7 @@ import math
 # norm = scipy.stats.norm
 class RandomBox(random.Random):
     def __init__(self, seed=None):
-        super(RandomBox,self).__init__(seed)
+        super(self.__class__, self).__init__(seed)
     def draw(self, lower, upper, lower_bound, upper_bound, confidence=0.68, log=False):
         if log:
             assert lower>0 and upper>0

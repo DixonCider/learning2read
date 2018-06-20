@@ -33,7 +33,7 @@ class SeluDNN:
     dropout : 0
     """
     def __init__(
-        self,units,layers,learning_rate,epochs,
+        self,units,layers,learning_rate,epochs=1,
         batch_size=32,seed=1,init_seed=1,
         verbose=False):
         self.units = units
