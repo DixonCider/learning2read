@@ -4,3 +4,4 @@ BX-CSV-Dump/*
 *.pyc
 .ipynb_checkpoints
 playground/*
+!submissions/**
