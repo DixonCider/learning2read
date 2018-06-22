@@ -1,0 +1,4 @@
+Matrix factorization by SGD
+Remove user/book/overall bias in preprocessing
+
+Failed: only overfit over iterations...
