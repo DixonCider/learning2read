@@ -5,3 +5,4 @@ BX-CSV-Dump/*
 .ipynb_checkpoints
 playground/*
 !submissions/**
+*.DS_Store
