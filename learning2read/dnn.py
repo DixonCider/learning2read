@@ -94,6 +94,7 @@ class SeluDNN:
         return self
 
     def epoch(self, iepoch):
+        self.module.train(True)
         for x,y in self.dataloader:
             pred = self.module(x)
             loss = self.loss_func(pred, y)
@@ -113,6 +114,7 @@ class SeluDNN:
             sys.stderr.flush()
 
     def predict(self, x, use_raw=False):
+        self.module.train(False)
         x = np.array(x)
         x = self.as_tensor(x)
         if not use_raw and self.normalized:
@@ -252,3 +254,28 @@ class SeluDNN:
             'model': model,
             'prediction': model.predict(tensor([[t,t] for t in range(10)]))
         }
+class BatchNormDNNModule(nn.Module):
+    def __init__(self, features, units, layers, outputs, init_seed=1):
+        super(BatchNormDNNModule, self).__init__()
+        torch.manual_seed(init_seed)
+        layer_list = []
+        for li in range(layers):
+            n_in  = units if li else features
+            L = nn.Linear(n_in, units)
+            layer_list.append(L)
+            layer_list.append(nn.BatchNorm1d(units)) # default momentum=0.1
+            layer_list.append(nn.modules.activation.ReLU(True))
+        layer_list.append(nn.Linear(units, outputs))
+        self.dnn = nn.Sequential(*layer_list)
+    def forward(self,x):
+        return self.dnn(x)
+
+
+class BatchNormDNN(SeluDNN):
+    @property
+    def module(self):
+        if not self._module:
+            self._module = BatchNormDNNModule(
+                self.nin, self.units, self.layers, self.nout,
+                init_seed=self.init_seed).to(self.device)
+        return self._module
