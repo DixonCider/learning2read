@@ -6,6 +6,7 @@ import abc
 
 import pandas as pd
 import numpy as np
+from learning2read.dnn import BatchNormDNN
 
 from sklearn.neighbors.base import _get_weights, _check_weights
 from sklearn.neighbors import KNeighborsRegressor
@@ -322,7 +323,7 @@ class EpochBasedTuner(BaseTuner):
             if self.verbose:
                 print(result)
             self.save()
-            
+
     @property
     def knn_optimizer(self):
         try:
