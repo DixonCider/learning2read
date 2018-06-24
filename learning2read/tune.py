@@ -4,9 +4,14 @@ import abc
 # from multiprocessing import Pool
 # from pathos.multiprocessing import ProcessingPool as Pool
 
+import os
+from collections import defaultdict
+
 import pandas as pd
 import numpy as np
 from learning2read.dnn import BatchNormDNN
+from learning2read.io import save_pickle,load_pickle
+from learning2read.utils import dict_to_code,RandomBox
 
 from sklearn.neighbors.base import _get_weights, _check_weights
 from sklearn.neighbors import KNeighborsRegressor
@@ -220,7 +225,7 @@ class EpochBasedTuner(BaseTuner):
         param_used['layers'] = int(param_used['layers'])
         return param_used
     
-    def tune_init(self):
+    def tune_init(self, param):
         # check param & cache
         param_used = self.check_param(param)
         pcode = dict_to_code(param_used)
@@ -242,13 +247,14 @@ class EpochBasedTuner(BaseTuner):
                 self.rlist.append(result)
                 return result
             self.model_list.append(model)
-        return None
+        return None, param_used
 
     def tune(self, param):
         # init & handle exceptions such as MLE / identity param
-        result_fail = self.tune_init()
+        result_fail, param_used = self.tune_init(param)
         if result_fail:
             return result_fail
+        pcode = dict_to_code(param_used)
 
         # train
         K = len(self.data_list)
@@ -323,7 +329,7 @@ class EpochBasedTuner(BaseTuner):
             if self.verbose:
                 print(result)
             self.save()
-
+            
     @property
     def knn_optimizer(self):
         try:
