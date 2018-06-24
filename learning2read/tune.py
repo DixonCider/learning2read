@@ -151,4 +151,197 @@ class BaseTuner(abc.ABC):
     #     return self._pool
 
 class EpochBasedTuner(BaseTuner):
-    pass
+    class Model(BatchNormDNN):
+        def init(self, data_dict):
+            self.x, self.y = data_dict['x'], data_dict['y']
+            self.nin = self.x.size(1)
+            self.y = self.y.view(self.x.size(0), -1)
+            self.nout = self.y.size(1)
+
+            self.is_val_mode = True
+            self.xv, self.yv = data_dict['xv'], data_dict['yv']
+            self.yv = self.yv.view(self.xv.size(0), -1)
+
+            # BatchNormDNN no normalize
+            # self.normalize(zero_safe=True)
+            super(self.__class__, self).init()
+
+        def epoch(self):
+            super(self.__class__, self).epoch(None)
+            self.ein.append(float(self.loss_func(self.module(self.x), self.y)))
+            self.eval.append(float(self.loss_func(self.module(self.xv), self.yv)))
+            
+    def __init__(self,
+                 pid, data_list, fpath,
+                 time_limit_per_tune=None, max_epochs=None,
+                 verbose=True, resume=True):
+        assert type(time_limit_per_tune)!=type(None) or type(max_epochs)!=type(None)
+        self.pid = pid
+        self.data_list = data_list
+        self.model_list = None
+        self.fpath = fpath
+        self.time_limit_per_tune = time_limit_per_tune or 1e+10
+        self.max_epochs = max_epochs or 1e+10
+        self.verbose = verbose
+        self.rlist = []
+        path = fpath(pid)
+        if resume:
+            if os.access(path, os.R_OK):
+                self.rlist = load_pickle(path)
+                if verbose:
+                    print("target file %s detected"%path)
+                    print("%d datas loaded"%len(self.rlist))
+        self.rcache = defaultdict(lambda: -1)
+        self.start = None
+        
+    def new_model(self,param):
+        return self.__class__.Model(**param)
+        
+    @property
+    def df(self):
+        rdf = pd.DataFrame(self.rlist)
+        rdf = rdf.sort_values('E_val')
+        rdf = rdf.loc[:,[
+            'E_in', 'E_in_std', 'E_val', 'E_val_std', 'best_iepoch', 
+            'units', 'layers', 'learning_rate', 'time', 'nepoch', 'pid']]
+        return rdf
+    
+    def save(self):
+        save_pickle(self.fpath(self.pid), self.rlist)
+    
+    def check_param(self, param):
+        param_used = {}
+        param_used.update(param)
+        param_used.update({
+            'batch_size': 1024,
+        })
+        param_used['units'] = int(param_used['units'])
+        param_used['layers'] = int(param_used['layers'])
+        return param_used
+    
+    def tune_init(self):
+        # check param & cache
+        param_used = self.check_param(param)
+        pcode = dict_to_code(param_used)
+        if self.rcache[pcode]>=0:
+            return self.rlist[self.rcache[pcode]]
+        
+        # init models
+        self.model_list = []
+        K = len(self.data_list)
+        for i in range(K):
+            model = self.new_model(param_used)
+            try:
+                model.init(self.data_list[i])
+            except: # MLE?
+                result = {
+                    'pcode' : -1,
+                    'pid' : self.pid,
+                }
+                self.rlist.append(result)
+                return result
+            self.model_list.append(model)
+        return None
+
+    def tune(self, param):
+        # init & handle exceptions such as MLE / identity param
+        result_fail = self.tune_init()
+        if result_fail:
+            return result_fail
+
+        # train
+        K = len(self.data_list)
+        iepoch = 0
+        self.start = now()
+        while True:
+            # sequentially train because python multiprocessing overhead
+            try:
+                for i in range(K):
+                    self.model_list[i].epoch()
+            except Exception as e:
+                print(e)
+                break
+            if self.verbose:
+                print("iepoch %d done. eval=%s"%(iepoch, str([round(self.model_list[i].last_eval,6) for i in range(5)])))
+            if self.early_stop(iepoch):
+                break
+            if iepoch>3 and self.model_list[0].last_ein>1000:
+                break
+            iepoch += 1
+        nepoch = iepoch+1
+            
+        # conclude K models information
+        evals = [sum([m.eval[i] for m in self.model_list])/K for i in range(nepoch)]
+        best_eval = min(evals)
+        best_iepoch = 0
+        for i in range(nepoch):
+            if evals[i]==best_eval:
+                best_iepoch = i
+                break
+        
+        bein  = [m.ein[best_iepoch] for m in self.model_list]
+        beval = [m.eval[best_iepoch] for m in self.model_list]
+        result = {}
+        result.update(param_used) # instead of "param"
+        result.update({
+            'time' : self.time_elapsed,
+            'pcode' : pcode,
+            'best_iepoch' : best_iepoch,
+            'nepoch' : nepoch,
+            'E_in' : np.mean(bein),
+            'E_in_std' : np.std(bein),
+            'E_val' : np.mean(beval),
+            'E_val_std' : np.std(beval),
+            'pid' : self.pid,
+        })
+        self.rcache[pcode] = len(self.rlist)
+        self.rlist.append(result)
+        return result
+    
+    def early_stop(self, iepoch):
+        if iepoch > self.max_epochs:
+            return True
+        if self.time_elapsed > self.time_limit_per_tune:
+            return True
+        return False
+    
+    def random_param(self):
+        R = RandomBox() # no seed is good seed
+        return {
+            'units'  : R.draw_int(3, 10 , 2, 50),
+            'layers' : R.draw_int(3, 10 , 1, 50),
+            'learning_rate' : R.draw_log(0.01, 0.1, 0.0001, 0.5),
+        }
+
+    def rs(self, n_iter):
+        for i in range(n_iter):
+            param = self.random_param()
+            if self.verbose:
+                print(param)
+            result = self.tune(param)
+            if self.verbose:
+                print(result)
+            self.save()
+            
+    @property
+    def knn_optimizer(self):
+        try:
+            return self._knn_optimizer
+        except:
+            assert len(self.rlist)>=3+1
+            self._knn_optimizer = KNNOptimization([
+                {'name':'units', 'type':'int', 'min':2, 'max':200},
+                {'name':'layers', 'type':'int', 'min':1, 'max':30},
+                {'name':'learning_rate', 'type':'float', 'min':0.01, 'max':2},
+            ], 'E_val')
+            return self._knn_optimizer
+    
+    def knno(self, n_iter):
+        for i in range(n_iter):
+            advice = self.knn_optimizer.advice(self.df, 10000)
+            print(advice)
+            param = advice.sample(1).to_dict('records')[0]
+            print(param)
+            result = self.tune(param)
+            print(result)
+            self.save()
