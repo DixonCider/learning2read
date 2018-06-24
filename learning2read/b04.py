@@ -36,6 +36,46 @@ Data2 = DataMgr(PATH_LIN2['data'])
 Doc2 = PathMgr(PATH_LIN2['doc'])
 Doc = Doc2
 
+
+def tensor(*args,**kwargs):
+    if torch.cuda.device_count()>0:
+        return torch.cuda.FloatTensor(*args,**kwargs)
+    else:
+        return torch.FloatTensor(*args,**kwargs)
+class TensorLoader:
+    def __init__(self, pickle_path, verbose=True):
+        self.verbose = verbose
+        self.pickle = load_pickle(pickle_path)
+    def get_fold_dict(N=None):
+        p = self.pickle
+        if N:
+            N2 = N//4
+            if self.verbose:
+                print("[TensorLoader] truncated mode N=%d, N2=%d"%(N, N2))
+            x = tensor(np.array(p['df_train'].iloc[:N, 1:]))
+            y = tensor(np.array(p['df_train'].iloc[:N, :1]))
+            xv = tensor(np.array(p['df_valid'].iloc[:N2, 1:]))
+            yv = tensor(np.array(p['df_valid'].iloc[:N2, :1]))
+        else:
+            x = tensor(np.array(p['df_train'].iloc[:, 1:]))
+            y = tensor(np.array(p['df_train'].iloc[:, :1]))
+            xv = tensor(np.array(p['df_valid'].iloc[:, 1:]))
+            yv = tensor(np.array(p['df_valid'].iloc[:, :1]))
+        if self.verbose:
+            for key in ['x', 'y', 'xv', 'yv']:
+                print("[TensorLoader] %s: %s"%(key, eval("str(%s.size())"%key)))
+        return {'x':x, 'y':y, 'xv':xv, 'yv':yv}
+    @classmethod
+    def demo(cls):
+        File = PathMgr(PATH_LIN2['cache'])
+        assert File.is_readable("proc40072_5fold_var_0")
+        K = 5
+        fold_list = []
+        for i in range(K):
+            obj = cls(File("proc40072_5fold_var_%d"%i))
+            fold_list.append(obj.get_fold_dict())
+            print("fold_list[%d] ready."%i)
+
 class SeluDNN_Tune(SeluDNN):
     """
     diff from SeluDNN:
