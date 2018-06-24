@@ -46,7 +46,7 @@ class TensorLoader:
     def __init__(self, pickle_path, verbose=True):
         self.verbose = verbose
         self.pickle = load_pickle(pickle_path)
-    def get_fold_dict(N=None):
+    def get_fold_dict(self,N=None):
         p = self.pickle
         if N:
             N2 = N//4
