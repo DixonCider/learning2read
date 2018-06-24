@@ -1,14 +1,16 @@
 # Hyperparameter Tuner Abstract Class
 import abc
+
 # from multiprocessing import Pool
 # from pathos.multiprocessing import ProcessingPool as Pool
-import datetime
-now = datetime.datetime.now
 
+import pandas as pd
+import numpy as np
 
 from sklearn.neighbors.base import _get_weights, _check_weights
-# from sklearn.utils import check_array
 from sklearn.neighbors import KNeighborsRegressor
+import datetime
+now = datetime.datetime.now
 
 class SklearnKNN(KNeighborsRegressor):
     def __init__(self, **kwargs):
