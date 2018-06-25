@@ -98,7 +98,10 @@ class KNNOptimization:
         self.model.fit(rdf.loc[:, self.x_names], rdf.loc[:, self.target])
         params = []
         for d in self.param_list:
-            x = np.random.uniform(d['min'], d['max'], size=N)
+            if d.get('const'):
+                x = np.ones(N) * d['const']
+            else:
+                x = np.random.uniform(d['min'], d['max'], size=N)
             x = x.astype(d['type'])
             params.append({'name':d['name'], 'value':x})
         x_pred = np.vstack([d['value'] for d in params]).transpose()
@@ -184,6 +187,7 @@ class EpochBasedTuner(BaseTuner):
         assert type(time_limit_per_tune)!=type(None) or type(max_epochs)!=type(None)
         self.pid = pid
         self.data_list = data_list
+        self.samples = data_list[0]['x'].size(0)
         self.model_list = None
         self.fpath = fpath
         self.time_limit_per_tune = time_limit_per_tune or 1e+10
@@ -209,7 +213,7 @@ class EpochBasedTuner(BaseTuner):
         rdf = rdf.sort_values('E_val')
         rdf = rdf.loc[:,[
             'E_in', 'E_in_std', 'E_val', 'E_val_std', 'best_iepoch', 
-            'units', 'layers', 'learning_rate', 'time', 'nepoch', 'pid']]
+            'units', 'layers', 'learning_rate', 'time', 'nepoch', 'pid', 'samples']]
         return rdf
     
     def save(self):
@@ -295,6 +299,7 @@ class EpochBasedTuner(BaseTuner):
             'pcode' : pcode,
             'best_iepoch' : best_iepoch,
             'nepoch' : nepoch,
+            'samples' : self.samples,
             'E_in' : np.mean(bein),
             'E_in_std' : np.std(bein),
             'E_val' : np.mean(beval),

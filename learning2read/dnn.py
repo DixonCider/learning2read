@@ -35,7 +35,7 @@ class SeluDNN:
     def __init__(
         self,units,layers,learning_rate,epochs=1,
         batch_size=32,seed=1,init_seed=1,
-        verbose=False):
+        verbose=False,**kwargs): # useless param such as kwargs['samples']
         self.units = units
         self.layers = layers
         self.learning_rate = learning_rate
