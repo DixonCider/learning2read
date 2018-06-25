@@ -52,10 +52,12 @@ class TensorLoader:
             N2 = N//4
             if self.verbose:
                 print("[TensorLoader] truncated mode N=%d, N2=%d"%(N, N2))
-            x = tensor(np.array(p['df_train'].iloc[:N, 1:]))
-            y = tensor(np.array(p['df_train'].iloc[:N, :1]))
-            xv = tensor(np.array(p['df_valid'].iloc[:N2, 1:]))
-            yv = tensor(np.array(p['df_valid'].iloc[:N2, :1]))
+            dft = p['df_train'].sample(N)
+            dfv = p['df_valid'].sample(N2)
+            x = tensor(np.array(dft.iloc[:, 1:]))
+            y = tensor(np.array(dft.iloc[:, :1]))
+            xv = tensor(np.array(dfv.iloc[:, 1:]))
+            yv = tensor(np.array(dfv.iloc[:, :1]))
         else:
             x = tensor(np.array(p['df_train'].iloc[:, 1:]))
             y = tensor(np.array(p['df_train'].iloc[:, :1]))
