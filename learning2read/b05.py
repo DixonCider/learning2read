@@ -31,6 +31,10 @@ PATH_LOCAL = {
     'data' : r"~/Documents/mltechFinal/src/data/raw"
 }
 
+PATH_LOCAL_PROCESSED = {
+    'data' : r"~/Documents/mltechFinal/src/data/processed"
+}
+
 File = PathMgr(PATH_LIN2['cache'])
 Data = DataMgr(PATH_LIN2['data'])
 Doc = PathMgr(PATH_LIN2['doc'])
